@@ -1,4 +1,25 @@
+'use client'
+import { useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
+
 export default function Home() {
+  const [listings, setListings] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchListings = async () => {
+      const { data, error } = await supabase
+        .from('listings')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20)
+
+      if (!error && data) setListings(data)
+      setLoading(false)
+    }
+    fetchListings()
+  }, [])
+
   return (
     <main style={{
       fontFamily: "'DM Sans', sans-serif",
@@ -59,7 +80,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* SPONSORED STRIP */}
+      {/* SPONSORED STRIP - 그대로 유지 */}
       <div style={{
         background: "#fdf6e8", borderBottom: "1px solid #f0e4c0",
         padding: "10px 24px", display: "flex", alignItems: "center",
@@ -104,10 +125,9 @@ export default function Home() {
         ))}
       </div>
 
-      {/* MAIN */}
       <div style={{padding: "20px 24px", maxWidth: "1100px", margin: "0 auto"}}>
 
-        {/* FEATURED AD */}
+        {/* FEATURED AD - 그대로 유지 */}
         <div style={{
           borderRadius: "14px", background: "linear-gradient(135deg, #1a3a2a, #4a8c5c)",
           padding: "28px 32px", marginBottom: "32px",
@@ -135,42 +155,58 @@ export default function Home() {
           <div style={{fontSize: "64px"}}>🥦</div>
         </div>
 
-        {/* LISTINGS */}
+        {/* ✅ LISTINGS — Supabase 실제 데이터 */}
         <div style={{display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "14px"}}>
           <div style={{fontFamily: "Georgia, serif", fontSize: "20px"}}>Near you</div>
           <div style={{fontSize: "13px", color: "#4a8c5c", cursor: "pointer", textDecoration: "underline"}}>See all →</div>
         </div>
 
-        <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "16px", marginBottom: "36px"}}>
-          {[
-            {emoji: "🚲", price: "$280", title: "Trek mountain bike — barely used", dist: "0.4 km", time: "2 hrs ago"},
-            {emoji: "🛋️", price: "$150", title: "3-seater couch, grey fabric", dist: "1.8 km", time: "5 hrs ago"},
-            {emoji: "📱", price: "$620", title: "iPhone 14 Pro 256GB Space Black", dist: "3.2 km", time: "Yesterday"},
-            {emoji: "🌿", price: "Free", title: "Potted succulents — pick up today", dist: "0.7 km", time: "3 hrs ago"},
-            {emoji: "🪑", price: "$45", title: "IKEA desk chair, good cond.", dist: "2.1 km", time: "1 day ago"},
-          ].map((item) => (
-            <div key={item.title} style={{
-              background: "#fff", borderRadius: "14px",
-              border: "1px solid #e8e4de", overflow: "hidden", cursor: "pointer"
-            }}>
-              <div style={{
-                width: "100%", aspectRatio: "4/3", background: "#e8f4f0",
-                display: "flex", alignItems: "center", justifyContent: "center", fontSize: "40px"
-              }}>{item.emoji}</div>
-              <div style={{padding: "12px 14px"}}>
-                <div style={{fontFamily: "Georgia, serif", fontSize: "18px", fontWeight: "700", marginBottom: "2px"}}>{item.price}</div>
-                <div style={{fontSize: "14px", color: "#4a4a4a", marginBottom: "8px",
-                  whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>{item.title}</div>
-                <div style={{display: "flex", justifyContent: "space-between"}}>
-                  <div style={{fontSize: "12px", color: "#4a8c5c", fontWeight: "500"}}>📍 {item.dist}</div>
-                  <div style={{fontSize: "12px", color: "#8a8a8a"}}>{item.time}</div>
+        {loading ? (
+          <div style={{textAlign: "center", padding: "40px", color: "#8a8a8a", fontSize: "14px"}}>
+            Loading listings...
+          </div>
+        ) : listings.length === 0 ? (
+          <div style={{textAlign: "center", padding: "40px", color: "#8a8a8a", fontSize: "14px"}}>
+            No listings yet. Be the first to post!
+          </div>
+        ) : (
+          <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "16px", marginBottom: "36px"}}>
+            {listings.map((item) => (
+              <div key={item.id} style={{
+                background: "#fff", borderRadius: "14px",
+                border: "1px solid #e8e4de", overflow: "hidden", cursor: "pointer"
+              }}>
+                <div style={{
+                  width: "100%", aspectRatio: "4/3", background: "#e8f4f0",
+                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: "40px"
+                }}>
+                  {item.image_url
+                    ? <img src={item.image_url} alt={item.title} style={{width: "100%", height: "100%", objectFit: "cover"}} />
+                    : "📦"}
+                </div>
+                <div style={{padding: "12px 14px"}}>
+                  <div style={{fontFamily: "Georgia, serif", fontSize: "18px", fontWeight: "700", marginBottom: "2px"}}>
+                    {item.price === 0 || item.price === null ? "Free" : `$${item.price}`}
+                  </div>
+                  <div style={{fontSize: "14px", color: "#4a4a4a", marginBottom: "8px",
+                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>
+                    {item.title}
+                  </div>
+                  <div style={{display: "flex", justifyContent: "space-between"}}>
+                    <div style={{fontSize: "12px", color: "#4a8c5c", fontWeight: "500"}}>
+                      📦 {item.category}
+                    </div>
+                    <div style={{fontSize: "12px", color: "#8a8a8a"}}>
+                      {new Date(item.created_at).toLocaleDateString('en-NZ', {day: 'numeric', month: 'short'})}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
-        {/* JOBS */}
+        {/* JOBS - 그대로 유지 */}
         <div style={{display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "14px"}}>
           <div style={{fontFamily: "Georgia, serif", fontSize: "20px"}}>Hiring today</div>
           <div style={{fontSize: "13px", color: "#4a8c5c", cursor: "pointer", textDecoration: "underline"}}>See all jobs →</div>
