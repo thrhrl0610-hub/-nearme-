@@ -271,7 +271,7 @@ const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | nu
                   </div>
                 </div>
               </div>
-            ))}
+            }
           </div>
         )}
 
