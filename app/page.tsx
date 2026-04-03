@@ -1,10 +1,14 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+
 import { supabase } from '../lib/supabase'
 
 export default function Home() {
   const [listings, setListings] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
+
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -172,7 +176,7 @@ export default function Home() {
         ) : (
           <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "16px", marginBottom: "36px"}}>
             {listings.map((item) => (
-              <div key={item.id} style={{
+              <div key={item.id} onClick={() => router.push(`/listings/${item.id}`)} style={{
                 background: "#fff", borderRadius: "14px",
                 border: "1px solid #e8e4de", overflow: "hidden", cursor: "pointer"
               }}>
