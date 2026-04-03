@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 export default function Home() {
   const [ads, setAds] = useState<any[]>([])
   const [listings, setListings] = useState<any[]>([])
+  const [jobs, setJobs] = useState<any[]>([])
   const [activeCategory, setActiveCategory] = useState('All')
   const [search, setSearch] = useState('')
   const [radius, setRadius] = useState(20)
@@ -33,7 +34,7 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    const fetchListings = async () => {
+    const fetchData = async () => {
       let query = supabase.from('listings').select('*').order('created_at', { ascending: false }).limit(20)
       if (search) query = query.ilike('title', `%${search}%`)
       if (activeCategory !== 'All') query = query.eq('category', activeCategory)
@@ -56,14 +57,16 @@ export default function Home() {
           setListings(data)
         }
       }
+
+      const { data: jobsData } = await supabase.from('jobs').select('*').limit(6)
+      if (jobsData) setJobs(jobsData)
+
+      const { data: adsData } = await supabase.from('ads').select('*').limit(6)
+      if (adsData) setAds(adsData)
+
       setLoading(false)
     }
-    fetchListings()
-    const fetchAds = async () => {
-      const { data } = await supabase.from('ads').select('*').limit(6)
-      if (data) setAds(data)
-    }
-    fetchAds()
+    fetchData()
   }, [activeCategory, search, radius, userLocation])
 
   return (
@@ -144,7 +147,7 @@ export default function Home() {
         {/* LISTINGS */}
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "14px" }}>
           <div style={{ fontFamily: "Georgia, serif", fontSize: "20px" }}>Near you</div>
-          <div style={{ fontSize: "13px", color: "#4a8c5c", cursor: "pointer", textDecoration: "underline" }}>See all →</div>
+          <div onClick={() => router.push('/browse')} style={{ fontSize: "13px", color: "#4a8c5c", cursor: "pointer", textDecoration: "underline" }}>See all →</div>
         </div>
 
         {loading ? (
@@ -180,32 +183,29 @@ export default function Home() {
         )}
 
         {/* JOBS */}
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "14px" }}>
-          <div style={{ fontFamily: "Georgia, serif", fontSize: "20px" }}>Hiring today</div>
-          <div style={{ fontSize: "13px", color: "#4a8c5c", cursor: "pointer", textDecoration: "underline" }}>See all jobs →</div>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "12px" }}>
-          {[
-            { emoji: "🏗️", title: "Labourer — concrete pour", company: "Northland Build Co · Silverdale", pay: "$28/hr", tags: ["Urgent", "Cash daily"] },
-            { emoji: "🧹", title: "House cleaner wanted", company: "Private · Albany", pay: "$30/hr", tags: ["Today only", "3 hrs"] },
-            { emoji: "🍔", title: "Kitchen hand — dinner shift", company: "The Orchard Bar · Millwater", pay: "$23/hr", tags: ["Tonight", "Tips"] },
-            { emoji: "🌳", title: "Garden tidy — weekend", company: "Private · Orewa", pay: "$25/hr", tags: ["Cash", "Sat–Sun"] },
-          ].map((job) => (
-            <div key={job.title} style={{ background: "#fff", border: "1px solid #e8e4de", borderRadius: "14px", padding: "16px 18px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer" }}>
-              <div style={{ width: "44px", height: "44px", borderRadius: "10px", background: "#e8f4f0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", flexShrink: 0 }}>{job.emoji}</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: "14px", fontWeight: "600", marginBottom: "3px" }}>{job.title}</div>
-                <div style={{ fontSize: "12px", color: "#8a8a8a", marginBottom: "4px" }}>{job.company}</div>
-                <div style={{ display: "flex", gap: "5px" }}>
-                  {job.tags.map(tag => (
-                    <span key={tag} style={{ fontSize: "11px", borderRadius: "4px", padding: "2px 7px", fontWeight: "500", background: "#e8f5e8", color: "#2d7a2d" }}>{tag}</span>
-                  ))}
-                </div>
-              </div>
-              <div style={{ fontSize: "15px", fontWeight: "700" }}>{job.pay}</div>
+        {jobs.length > 0 && (
+          <>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "14px" }}>
+              <div style={{ fontFamily: "Georgia, serif", fontSize: "20px" }}>Hiring today</div>
+              <div style={{ fontSize: "13px", color: "#4a8c5c", cursor: "pointer", textDecoration: "underline" }}>See all jobs →</div>
             </div>
-          ))}
-        </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "12px" }}>
+              {jobs.map((job) => (
+                <div key={job.id} style={{ background: "#fff", border: "1px solid #e8e4de", borderRadius: "14px", padding: "16px 18px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer" }}>
+                  <div style={{ width: "44px", height: "44px", borderRadius: "10px", background: "#e8f4f0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", flexShrink: 0 }}>💼</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: "14px", fontWeight: "600", marginBottom: "3px" }}>{job.title}</div>
+                    <div style={{ fontSize: "12px", color: "#8a8a8a", marginBottom: "4px" }}>{job.company}</div>
+                    <div style={{ display: "flex", gap: "5px" }}>
+                      <span style={{ fontSize: "11px", borderRadius: "4px", padding: "2px 7px", fontWeight: "500", background: "#e8f5e8", color: "#2d7a2d" }}>{job.job_type}</span>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: "15px", fontWeight: "700" }}>{job.pay_rate}</div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* BOTTOM NAV */}
