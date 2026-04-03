@@ -127,7 +127,7 @@ const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | nu
         display: "flex", alignItems: "center", gap: "8px",
         color: "rgba(255,255,255,0.85)", fontSize: "13px"
       }}>
-        📍 Showing listings within <strong style={{color: "#fff"}}>&nbsp;10 km&nbsp;</strong> of you
+        📍 <span style={{whiteSpace: "nowrap"}}>Showing listings within <strong style={{color: "#fff"}}>&nbsp;{radius} km&nbsp;</strong> of you</span>
         <div style={{marginLeft: "auto", display: "flex", gap: "4px"}}>
         {[5, 10, 20, 50].map((r) => (
   <button key={r} onClick={() => setRadius(r)} style={{
