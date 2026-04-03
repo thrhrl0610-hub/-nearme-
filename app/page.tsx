@@ -197,7 +197,7 @@ export default function Home() {
       <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#fff", borderTop: "1px solid #e8e4de", display: "flex", justifyContent: "space-around", padding: "8px 0 12px" }}>
         {[
           ["🏠", "Home", "/"],
-          ["🔍", "Browse", "/"],
+          ["🔍", "Browse", "/browse"],
           ["➕", "Post", "/post"],
           ["💬", "Chat", "/messages"],
           ["👤", "Profile", "/profile"]
