@@ -191,7 +191,7 @@ export default function Home() {
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "12px" }}>
               {jobs.map((job) => (
-                <div key={job.id} style={{ background: "#fff", border: "1px solid #e8e4de", borderRadius: "14px", padding: "16px 18px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer" }}>
+               <div key={job.id} onClick={() => router.push(`/jobs/${job.id}`)} style={{ background: "#fff", border: "1px solid #e8e4de", borderRadius: "14px", padding: "16px 18px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer" }}>
                   <div style={{ width: "44px", height: "44px", borderRadius: "10px", background: "#e8f4f0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", flexShrink: 0 }}>💼</div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: "14px", fontWeight: "600", marginBottom: "3px" }}>{job.title}</div>
