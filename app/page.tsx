@@ -168,7 +168,8 @@ const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | nu
       </div>
 
       {/* CATEGORIES */}
-      <div style={{padding: "16px 24px 0", display: "flex", gap: "8px", overflowX: "auto"}}>
+      <div style={{position: "relative"}}>
+<div style={{padding: "16px 24px 0", display: "flex", gap: "8px", overflowX: "auto", scrollbarWidth: "none"}}>
       {[
   {label: "🏠 All", value: "All"},
   {label: "📦 Marketplace", value: "Marketplace"},
@@ -187,6 +188,8 @@ const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | nu
   }}>{cat.label}</button>
 ))}
       </div>
+      <div style={{position: "absolute", right: 0, top: 0, height: "100%", width: "48px", background: "linear-gradient(to left, #fff, transparent)", pointerEvents: "none"}} />
+</div>
 
       <div style={{padding: "20px 24px", maxWidth: "1100px", margin: "0 auto"}}>
 
