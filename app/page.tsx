@@ -246,13 +246,13 @@ const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | nu
                   width: "100%", aspectRatio: "4/3", background: "#e8f4f0",
                   display: "flex", alignItems: "center", justifyContent: "center", fontSize: "40px"
                 }}>
-                  {item.image_url
-                    ? <img src={item.image_url} alt={item.title} style={{width: "100%", height: "100%", objectFit: "cover"}} />
-                    : <div style={{display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "6px"}}>
-                        <span style={{fontSize: "28px"}}>📦</span>
-                        <span style={{fontSize: "12px", color: "#4a8c5c"}}>{item.category}</span>
-                      </div>
-                </div>
+                {item.image_url
+  ? <img src={item.image_url} alt={item.title} style={{width: "100%", height: "100%", objectFit: "cover"}} />
+  : <div style={{display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "6px"}}>
+      <span style={{fontSize: "28px"}}>📦</span>
+      <span style={{fontSize: "12px", color: "#4a8c5c"}}>{item.category}</span>
+    </div>
+}
                 <div style={{padding: "12px 14px"}}>
                   <div style={{fontFamily: "Georgia, serif", fontSize: "18px", fontWeight: "700", marginBottom: "2px"}}>
                     {item.price === 0 || item.price === null ? "Free" : `$${item.price}`}
