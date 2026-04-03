@@ -1,9 +1,10 @@
 'use client'
+import { Suspense } from 'react'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 
-export default function MessagesPage() {
+function MessagesContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const listingId = searchParams.get('listing')
@@ -50,14 +51,12 @@ export default function MessagesPage() {
 
   const handleSend = async () => {
     if (!newMessage.trim() || !user || !receiverId || !listingId) return
-
     const { error } = await supabase.from('messages').insert({
       listing_id: listingId,
       sender_id: user.id,
       receiver_id: receiverId,
       content: newMessage.trim()
     })
-
     if (!error) {
       setNewMessage('')
       await fetchMessages(user.id)
@@ -73,11 +72,9 @@ export default function MessagesPage() {
 
   return (
     <main style={{minHeight: '100vh', background: '#faf8f4', display: 'flex', flexDirection: 'column'}}>
-      {/* NAV */}
       <nav style={{
         background: '#1a3a2a', padding: '0 24px', height: '58px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        flexShrink: 0
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0
       }}>
         <div onClick={() => router.push('/')}
           style={{fontFamily: 'Georgia, serif', fontSize: '22px', color: '#fff', cursor: 'pointer'}}>
@@ -90,7 +87,6 @@ export default function MessagesPage() {
         </button>
       </nav>
 
-      {/* LISTING INFO */}
       {listing && (
         <div style={{background: '#fff', borderBottom: '1px solid #e8e4de', padding: '14px 24px',
           display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0}}>
@@ -110,7 +106,6 @@ export default function MessagesPage() {
         </div>
       )}
 
-      {/* MESSAGES */}
       <div style={{flex: 1, overflowY: 'auto', padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: '10px'}}>
         {messages.length === 0 ? (
           <div style={{textAlign: 'center', color: '#8a8a8a', fontSize: '14px', marginTop: '40px'}}>
@@ -136,7 +131,6 @@ export default function MessagesPage() {
         <div ref={bottomRef} />
       </div>
 
-      {/* INPUT */}
       <div style={{background: '#fff', borderTop: '1px solid #e8e4de', padding: '12px 24px',
         display: 'flex', gap: '10px', flexShrink: 0}}>
         <input
@@ -154,5 +148,13 @@ export default function MessagesPage() {
         }}>Send</button>
       </div>
     </main>
+  )
+}
+
+export default function MessagesPage() {
+  return (
+    <Suspense fallback={<div style={{minHeight: '100vh', background: '#faf8f4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a8a8a'}}>Loading...</div>}>
+      <MessagesContent />
+    </Suspense>
   )
 }
