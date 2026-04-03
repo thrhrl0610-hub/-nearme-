@@ -187,7 +187,7 @@ export default function Home() {
           <>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "14px" }}>
               <div style={{ fontFamily: "Georgia, serif", fontSize: "20px" }}>Hiring today</div>
-              <div style={{ fontSize: "13px", color: "#4a8c5c", cursor: "pointer", textDecoration: "underline" }}>See all jobs →</div>
+              <div onClick={() => router.push('/browse')} style={{ fontSize: "13px", color: "#4a8c5c", cursor: "pointer", textDecoration: "underline" }}>See all jobs →</div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "12px" }}>
               {jobs.map((job) => (
