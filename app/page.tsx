@@ -5,24 +5,66 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 
 export default function Home() {
+  const [ads, setAds] = useState<any[]>([])
   const [listings, setListings] = useState<any[]>([])
+  const [activeCategory, setActiveCategory] = useState('All')
+  const [search, setSearch] = useState('')
+  const [radius, setRadius] = useState(10)
+const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
 
   useEffect(() => {
     const fetchListings = async () => {
-      const { data, error } = await supabase
+      // Get user location
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => null
+      )
+    
+      let query = supabase
         .from('listings')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(20)
-
-      if (!error && data) setListings(data)
+    
+      if (search) {
+        query = query.ilike('title', `%${search}%`)
+      }
+    
+      if (activeCategory !== 'All') {
+        query = query.eq('category', activeCategory)
+      }
+    
+      const { data, error } = await query
+      if (!error && data) {
+        if (userLocation) {
+          const filtered = data.filter((item) => {
+            if (!item.latitude || !item.longitude) return true
+            const R = 6371
+            const dLat = (item.latitude - userLocation.lat) * Math.PI / 180
+            const dLng = (item.longitude - userLocation.lng) * Math.PI / 180
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(item.latitude * Math.PI / 180) *
+              Math.sin(dLng/2) * Math.sin(dLng/2)
+            const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+            return dist <= radius
+          })
+          setListings(filtered)
+        } else {
+          setListings(data)
+        }
+      }
       setLoading(false)
     }
     fetchListings()
-  }, [])
+    const fetchAds = async () => {
+      const { data } = await supabase.from('ads').select('*').limit(6)
+      if (data) setAds(data)
+    }
+    fetchAds()
+  }, [activeCategory, search, radius])
 
   return (
     <main style={{
@@ -63,7 +105,22 @@ export default function Home() {
           }}>+ Post</button>
         </div>
       </nav>
-
+{/* SEARCH BAR */}
+<div style={{
+  background: "#1a3a2a", padding: "10px 24px",
+}}>
+  <input
+    value={search}
+    onChange={(e) => setSearch(e.target.value)}
+    placeholder="🔍 Search listings..."
+    style={{
+      width: "100%", border: "none", borderRadius: "100px",
+      padding: "10px 18px", fontSize: "14px", outline: "none",
+      boxSizing: "border-box", background: "rgba(255,255,255,0.15)",
+      color: "#fff"
+    }}
+  />
+</div>
       {/* LOCATION BAR */}
       <div style={{
         background: "#2d5a3d", padding: "10px 24px",
@@ -72,15 +129,15 @@ export default function Home() {
       }}>
         📍 Showing listings within <strong style={{color: "#fff"}}>&nbsp;10 km&nbsp;</strong> of you
         <div style={{marginLeft: "auto", display: "flex", gap: "4px"}}>
-          {["5km", "10km", "20km", "50km"].map((r) => (
-            <button key={r} style={{
-              background: r === "10km" ? "#fff" : "rgba(255,255,255,0.12)",
-              border: "none", borderRadius: "100px",
-              color: r === "10km" ? "#1a3a2a" : "rgba(255,255,255,0.7)",
-              fontSize: "12px", padding: "4px 10px", cursor: "pointer",
-              fontWeight: r === "10km" ? "600" : "400"
-            }}>{r}</button>
-          ))}
+        {[5, 10, 20, 50].map((r) => (
+  <button key={r} onClick={() => setRadius(r)} style={{
+    background: radius === r ? "#fff" : "rgba(255,255,255,0.12)",
+    border: "none", borderRadius: "100px",
+    color: radius === r ? "#1a3a2a" : "rgba(255,255,255,0.7)",
+    fontSize: "12px", padding: "4px 10px", cursor: "pointer",
+    fontWeight: radius === r ? "600" : "400"
+  }}>{r}km</button>
+))}
         </div>
       </div>
 
@@ -94,39 +151,41 @@ export default function Home() {
           textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap"}}>
           📣 Sponsored
         </div>
-        {[
-          {emoji: "🍜", name: "Pho Silverdale", desc: "Lunch special $14.90", dist: "0.8 km"},
-          {emoji: "🏡", name: "Ray White Hibiscus", desc: "3 new listings", dist: "1.2 km"},
-          {emoji: "🧘", name: "Northshore Yoga", desc: "Free first class", dist: "2.4 km"},
-          {emoji: "🍕", name: "Flames Wood Fired", desc: "Party pizza deals", dist: "3.1 km"},
-        ].map((ad) => (
-          <div key={ad.name} style={{
-            display: "flex", alignItems: "center", gap: "10px",
-            background: "#fff", border: "1px solid #f0e4c0",
-            borderRadius: "8px", padding: "8px 14px", flexShrink: 0, cursor: "pointer"
-          }}>
-            <div style={{fontSize: "24px"}}>{ad.emoji}</div>
-            <div>
-              <div style={{fontSize: "13px", fontWeight: "600"}}>{ad.name}</div>
-              <div style={{fontSize: "11px", color: "#8a8a8a"}}>{ad.desc}</div>
-              <div style={{fontSize: "11px", color: "#4a8c5c", fontWeight: "500"}}>{ad.dist} away</div>
-            </div>
-          </div>
-        ))}
+        {ads.map((ad) => (
+  <div key={ad.id} style={{
+    display: "flex", alignItems: "center", gap: "10px",
+    background: "#fff", border: "1px solid #f0e4c0",
+    borderRadius: "8px", padding: "8px 14px", flexShrink: 0, cursor: "pointer"
+  }}>
+    <div style={{fontSize: "24px"}}>{ad.emoji}</div>
+    <div>
+      <div style={{fontSize: "13px", fontWeight: "600"}}>{ad.business_name}</div>
+      <div style={{fontSize: "11px", color: "#8a8a8a"}}>{ad.description}</div>
+      <div style={{fontSize: "11px", color: "#4a8c5c", fontWeight: "500"}}>{ad.location_name}</div>
+    </div>
+  </div>
+))}
       </div>
 
       {/* CATEGORIES */}
       <div style={{padding: "16px 24px 0", display: "flex", gap: "8px", overflowX: "auto"}}>
-        {["🏠 All", "📦 Marketplace", "📣 Businesses", "💼 Jobs", "🎉 Events", "🏘️ Real Estate"].map((cat, i) => (
-          <button key={cat} style={{
-            display: "flex", alignItems: "center", gap: "6px",
-            border: i === 0 ? "none" : "1.5px solid #e8e4de",
-            borderRadius: "100px", padding: "7px 14px", fontSize: "13px",
-            background: i === 0 ? "#1a3a2a" : "#fff",
-            color: i === 0 ? "#fff" : "#4a4a4a",
-            cursor: "pointer", whiteSpace: "nowrap"
-          }}>{cat}</button>
-        ))}
+      {[
+  {label: "🏠 All", value: "All"},
+  {label: "📦 Marketplace", value: "Marketplace"},
+  {label: "💼 Jobs", value: "Jobs"},
+  {label: "🎉 Events", value: "Events"},
+  {label: "🏘️ Real Estate", value: "Real Estate"},
+  {label: "🛠️ Services", value: "Services"},
+].map((cat, i) => (
+  <button key={cat.value} onClick={() => setActiveCategory(cat.value)} style={{
+    display: "flex", alignItems: "center", gap: "6px",
+    border: activeCategory === cat.value ? "none" : "1.5px solid #e8e4de",
+    borderRadius: "100px", padding: "7px 14px", fontSize: "13px",
+    background: activeCategory === cat.value ? "#1a3a2a" : "#fff",
+    color: activeCategory === cat.value ? "#fff" : "#4a4a4a",
+    cursor: "pointer", whiteSpace: "nowrap"
+  }}>{cat.label}</button>
+))}
       </div>
 
       <div style={{padding: "20px 24px", maxWidth: "1100px", margin: "0 auto"}}>
@@ -251,23 +310,29 @@ export default function Home() {
         </div>
       </div>
 
-      {/* BOTTOM NAV */}
-      <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0,
-        background: "#fff", borderTop: "1px solid #e8e4de",
-        display: "flex", justifyContent: "space-around", padding: "8px 0 12px"
-      }}>
-        {[["🏠", "Home"], ["🔍", "Browse"], ["➕", "Post"], ["💬", "Chat"], ["👤", "Profile"]].map(([icon, label]) => (
-          <div key={label} style={{
-            display: "flex", flexDirection: "column", alignItems: "center",
-            gap: "3px", cursor: "pointer", fontSize: "11px",
-            color: label === "Home" ? "#1a3a2a" : "#8a8a8a"
-          }}>
-            <div style={{fontSize: "22px"}}>{icon}</div>
-            {label}
-          </div>
-        ))}
-      </div>
+{/* BOTTOM NAV */}
+<div style={{
+  position: "fixed", bottom: 0, left: 0, right: 0,
+  background: "#fff", borderTop: "1px solid #e8e4de",
+  display: "flex", justifyContent: "space-around", padding: "8px 0 12px"
+}}>
+  {[
+    ["🏠", "Home", "/"],
+    ["🔍", "Browse", "/"],
+    ["➕", "Post", "/post"],
+    ["💬", "Chat", "/messages"],
+    ["👤", "Profile", "/profile"]
+  ].map(([icon, label, href]) => (
+    <div key={label} onClick={() => router.push(href as string)} style={{
+      display: "flex", flexDirection: "column", alignItems: "center",
+      gap: "3px", cursor: "pointer", fontSize: "11px",
+      color: label === "Home" ? "#1a3a2a" : "#8a8a8a"
+    }}>
+      <div style={{fontSize: "22px"}}>{icon}</div>
+      {label}
+    </div>
+  ))}
+</div>
     </main>
   );
 }

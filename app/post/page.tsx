@@ -1,149 +1,213 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 
 export default function PostPage() {
+  const router = useRouter()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [price, setPrice] = useState('')
-  const [category, setCategory] = useState('Marketplace')
   const [isFree, setIsFree] = useState(false)
+  const [category, setCategory] = useState('Marketplace')
+  const [image, setImage] = useState<File | null>(null)
+  const [location, setLocation] = useState<{lat: number, lng: number} | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
 
-  const categories = ['Marketplace', 'Jobs', 'Services', 'Events', 'Real Estate', 'Free']
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setImage(file)
+      setImagePreview(URL.createObjectURL(file))
+    }
+  }
 
   const handlePost = async () => {
     setLoading(true)
+    // Get user location
+const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject)
+  }).catch(() => null)
+  
+  const lat = pos?.coords.latitude ?? null
+  const lng = pos?.coords.longitude ?? null
     setMessage('')
+
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       setMessage('Please sign in first')
       setLoading(false)
       return
     }
+
+    let image_url = null
+
+    if (image) {
+      const fileExt = image.name.split('.').pop()
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`
+      const { error: uploadError } = await supabase.storage
+        .from('listings')
+        .upload(fileName, image)
+
+      if (uploadError) {
+        setMessage('Image upload failed')
+        setLoading(false)
+        return
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('listings')
+        .getPublicUrl(fileName)
+
+      image_url = urlData.publicUrl
+    }
+
     const { error } = await supabase.from('listings').insert({
       user_id: user.id,
       title,
       description,
-      price: isFree ? 0 : parseFloat(price),
+      price: isFree ? 0 : Number(price),
       category,
-      is_free: isFree,
-      location_name: 'Silverdale, Auckland',
-      lat: -36.6167,
-      lng: 174.6667,
+      image_url,
+      latitude: lat,
+longitude: lng,
     })
-    if (error) setMessage(error.message)
-    else setMessage('Posted successfully! ✅')
+
+    if (error) {
+      setMessage('Error: ' + error.message)
+    } else {
+      setMessage('Posted successfully! ✅')
+      setTimeout(() => router.push('/'), 1500)
+    }
     setLoading(false)
   }
 
   return (
-    <main style={{ minHeight: '100vh', background: '#faf8f4', paddingBottom: '40px' }}>
-      <nav style={{
-        background: '#1a3a2a', padding: '0 24px', height: '58px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+    <main style={{
+      minHeight: '100vh', background: '#faf8f4',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '24px'
+    }}>
+      <div style={{
+        background: '#fff', borderRadius: '14px',
+        border: '1px solid #e8e4de', padding: '40px',
+        width: '100%', maxWidth: '480px'
       }}>
-        <a href="/" style={{ fontFamily: 'Georgia, serif', fontSize: '22px', color: '#fff', textDecoration: 'none' }}>
-          near<span style={{ color: '#7dcf9a', fontStyle: 'italic' }}>me</span>
-        </a>
-        <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px' }}>Post a listing</div>
-      </nav>
-
-      <div style={{ maxWidth: '600px', margin: '32px auto', padding: '0 24px' }}>
-        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '24px', marginBottom: '24px' }}>
-          What are you posting?
-        </h1>
-
-        <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8e4de', padding: '28px' }}>
-
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '8px' }}>Category</label>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {categories.map(cat => (
-                <button key={cat} onClick={() => setCategory(cat)} style={{
-                  padding: '7px 14px', borderRadius: '100px', fontSize: '13px',
-                  border: '1.5px solid', cursor: 'pointer',
-                  borderColor: category === cat ? '#1a3a2a' : '#e8e4de',
-                  background: category === cat ? '#1a3a2a' : '#fff',
-                  color: category === cat ? '#fff' : '#4a4a4a',
-                }}>{cat}</button>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '8px' }}>Title</label>
-            <input
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              placeholder="e.g. Trek mountain bike — barely used"
-              style={{
-                width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px',
-                padding: '10px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box'
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '8px' }}>Description</label>
-            <textarea
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              placeholder="Describe your item..."
-              rows={4}
-              style={{
-                width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px',
-                padding: '10px 14px', fontSize: '14px', outline: 'none',
-                boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit'
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '8px' }}>Price (NZD)</label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <input
-                value={price}
-                onChange={e => setPrice(e.target.value)}
-                placeholder="0.00"
-                disabled={isFree}
-                type="number"
-                style={{
-                  flex: 1, border: '1.5px solid #e8e4de', borderRadius: '8px',
-                  padding: '10px 14px', fontSize: '14px', outline: 'none',
-                  boxSizing: 'border-box', opacity: isFree ? 0.5 : 1
-                }}
-              />
-              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', cursor: 'pointer' }}>
-                <input type="checkbox" checked={isFree} onChange={e => setIsFree(e.target.checked)} />
-                Free
-              </label>
-            </div>
-          </div>
-
-          {message && (
-            <div style={{
-              marginBottom: '16px', padding: '10px 14px',
-              background: message.includes('✅') ? '#e8f5e8' : '#fde8e8',
-              borderRadius: '8px', fontSize: '13px',
-              color: message.includes('✅') ? '#2d7a2d' : '#b03030'
-            }}>{message}</div>
-          )}
-
-          <button
-            onClick={handlePost}
-            disabled={loading || !title}
-            style={{
-              width: '100%', background: '#1a3a2a', color: '#fff',
-              border: 'none', borderRadius: '100px', padding: '14px',
-              fontSize: '15px', fontWeight: '600', cursor: 'pointer',
-              opacity: !title ? 0.5 : 1
-            }}
-          >
-            {loading ? 'Posting...' : 'Post listing'}
-          </button>
+        <div style={{
+          fontFamily: 'Georgia, serif', fontSize: '22px',
+          color: '#1a3a2a', marginBottom: '4px', textAlign: 'center'
+        }}>
+          near<span style={{color: '#4a8c5c', fontStyle: 'italic'}}>me</span>
         </div>
+        <div style={{fontSize: '14px', color: '#8a8a8a', textAlign: 'center', marginBottom: '28px'}}>
+          Post a listing
+        </div>
+
+        {/* CATEGORY */}
+        <div style={{marginBottom: '16px'}}>
+          <label style={{fontSize: '13px', fontWeight: '500', color: '#4a4a4a'}}>Category</label>
+          <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px'}}>
+            {['Marketplace', 'Jobs', 'Services', 'Events', 'Real Estate', 'Free'].map((cat) => (
+              <button key={cat} onClick={() => setCategory(cat)} style={{
+                border: category === cat ? 'none' : '1.5px solid #e8e4de',
+                borderRadius: '100px', padding: '6px 14px', fontSize: '13px',
+                background: category === cat ? '#1a3a2a' : '#fff',
+                color: category === cat ? '#fff' : '#4a4a4a',
+                cursor: 'pointer'
+              }}>{cat}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* IMAGE UPLOAD */}
+        <div style={{marginBottom: '16px'}}>
+          <label style={{fontSize: '13px', fontWeight: '500', color: '#4a4a4a'}}>Photo</label>
+          <div
+            onClick={() => document.getElementById('imageInput')?.click()}
+            style={{
+              marginTop: '8px', border: '2px dashed #e8e4de', borderRadius: '12px',
+              padding: '20px', textAlign: 'center', cursor: 'pointer',
+              background: imagePreview ? 'transparent' : '#faf8f4'
+            }}>
+            {imagePreview
+              ? <img src={imagePreview} alt="preview"
+                  style={{width: '100%', borderRadius: '8px', maxHeight: '200px', objectFit: 'cover'}} />
+              : <div style={{color: '#8a8a8a', fontSize: '13px'}}>📷 Tap to add photo</div>
+            }
+          </div>
+          <input id="imageInput" type="file" accept="image/*"
+            onChange={handleImageChange} style={{display: 'none'}} />
+        </div>
+
+        {/* TITLE */}
+        <div style={{marginBottom: '16px'}}>
+          <label style={{fontSize: '13px', fontWeight: '500', color: '#4a4a4a'}}>Title</label>
+          <input
+            value={title} onChange={(e) => setTitle(e.target.value)}
+            placeholder="What are you selling?"
+            style={{
+              width: '100%', marginTop: '6px', border: '1.5px solid #e8e4de',
+              borderRadius: '8px', padding: '10px 14px', fontSize: '14px',
+              outline: 'none', boxSizing: 'border-box'
+            }}
+          />
+        </div>
+
+        {/* DESCRIPTION */}
+        <div style={{marginBottom: '16px'}}>
+          <label style={{fontSize: '13px', fontWeight: '500', color: '#4a4a4a'}}>Description</label>
+          <textarea
+            value={description} onChange={(e) => setDescription(e.target.value)}
+            placeholder="Describe your item..."
+            rows={3}
+            style={{
+              width: '100%', marginTop: '6px', border: '1.5px solid #e8e4de',
+              borderRadius: '8px', padding: '10px 14px', fontSize: '14px',
+              outline: 'none', boxSizing: 'border-box', resize: 'vertical'
+            }}
+          />
+        </div>
+
+        {/* PRICE */}
+        <div style={{marginBottom: '24px'}}>
+          <label style={{fontSize: '13px', fontWeight: '500', color: '#4a4a4a'}}>Price (NZD)</label>
+          <div style={{display: 'flex', gap: '12px', alignItems: 'center', marginTop: '6px'}}>
+            <input
+              value={price} onChange={(e) => setPrice(e.target.value)}
+              placeholder="0.00" type="number" disabled={isFree}
+              style={{
+                flex: 1, border: '1.5px solid #e8e4de', borderRadius: '8px',
+                padding: '10px 14px', fontSize: '14px', outline: 'none',
+                opacity: isFree ? 0.4 : 1
+              }}
+            />
+            <label style={{display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer'}}>
+              <input type="checkbox" checked={isFree} onChange={(e) => setIsFree(e.target.checked)} />
+              Free
+            </label>
+          </div>
+        </div>
+
+        {message && (
+          <div style={{
+            marginBottom: '16px', padding: '10px 14px',
+            background: '#e8f5e8', borderRadius: '8px',
+            fontSize: '13px', color: '#2d7a2d'
+          }}>{message}</div>
+        )}
+
+        <button
+          onClick={handlePost} disabled={loading}
+          style={{
+            width: '100%', background: '#1a3a2a', color: '#fff',
+            border: 'none', borderRadius: '100px', padding: '12px',
+            fontSize: '15px', fontWeight: '600', cursor: 'pointer'
+          }}
+        >
+          {loading ? 'Posting...' : 'Post listing'}
+        </button>
       </div>
     </main>
   )
