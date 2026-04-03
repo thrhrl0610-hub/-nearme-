@@ -8,17 +8,32 @@ export default function Home() {
   const [listings, setListings] = useState<any[]>([])
   const [activeCategory, setActiveCategory] = useState('All')
   const [search, setSearch] = useState('')
-  const [radius, setRadius] = useState(10)
+  const [radius, setRadius] = useState(20)
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
+  const [suburb, setSuburb] = useState('Locating...')
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords
+        setUserLocation({ lat, lng })
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
+          const data = await res.json()
+          const name = data.address?.suburb || data.address?.town || data.address?.city || data.address?.county || 'Near you'
+          setSuburb(name)
+        } catch {
+          setSuburb('Near you')
+        }
+      },
+      () => setSuburb('New Zealand')
+    )
+  }, [])
+
+  useEffect(() => {
     const fetchListings = async () => {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => null
-      )
       let query = supabase.from('listings').select('*').order('created_at', { ascending: false }).limit(20)
       if (search) query = query.ilike('title', `%${search}%`)
       if (activeCategory !== 'All') query = query.eq('category', activeCategory)
@@ -49,7 +64,7 @@ export default function Home() {
       if (data) setAds(data)
     }
     fetchAds()
-  }, [activeCategory, search, radius])
+  }, [activeCategory, search, radius, userLocation])
 
   return (
     <main style={{ fontFamily: "'DM Sans', sans-serif", background: "#faf8f4", minHeight: "100vh", paddingBottom: "80px" }}>
@@ -61,7 +76,7 @@ export default function Home() {
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "rgba(255,255,255,0.15)", borderRadius: "100px", padding: "6px 12px", color: "#fff", fontSize: "13px" }}>
             <div style={{ width: "7px", height: "7px", background: "#7dcf9a", borderRadius: "50%" }}></div>
-            Silverdale
+            {suburb}
           </div>
           <button onClick={() => router.push('/post')} style={{ background: "#e85d2f", color: "#fff", border: "none", borderRadius: "100px", padding: "8px 18px", fontSize: "13px", fontWeight: "600", cursor: "pointer" }}>+ Post</button>
         </div>
