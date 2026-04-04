@@ -7,6 +7,7 @@ import BottomNav from '../../components/BottomNav'
 export default function ProfilePage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
+  const [profile, setProfile] = useState<any>(null)
   const [listings, setListings] = useState<any[]>([])
   const [savedListings, setSavedListings] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState<'my' | 'saved'>('my')
@@ -17,10 +18,16 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/auth'); return }
       setUser(user)
+
+      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+      if (profileData) setProfile(profileData)
+
       const { data, error } = await supabase.from('listings').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
       if (!error && data) setListings(data)
+
       const { data: savesData } = await supabase.from('saves').select('*, listings(*)').eq('user_id', user.id).order('created_at', { ascending: false })
       if (savesData) setSavedListings(savesData.map((s: any) => s.listings).filter(Boolean))
+
       setLoading(false)
     }
     fetchData()
@@ -49,17 +56,56 @@ export default function ProfilePage() {
       </nav>
 
       <div style={{ maxWidth: '680px', margin: '0 auto', padding: '24px' }}>
-        <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '24px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#1a3a2a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', color: '#fff', fontWeight: '700' }}>
-            {user?.email?.[0].toUpperCase()}
+        {/* PROFILE CARD */}
+        <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '24px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: profile?.is_verified ? '0' : '0' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#1a3a2a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', color: '#fff', fontWeight: '700', flexShrink: 0 }}>
+              {user?.email?.[0].toUpperCase()}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <div style={{ fontSize: '16px', fontWeight: '600' }}>{profile?.full_name || user?.email}</div>
+                {profile?.is_verified && (
+                  <span style={{ background: '#e8f4f0', color: '#1a3a2a', fontSize: '11px', fontWeight: '700', padding: '2px 8px', borderRadius: '100px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                    ✅ Verified
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: '13px', color: '#8a8a8a' }}>{listings.length} listing{listings.length !== 1 ? 's' : ''} posted</div>
+              {profile?.is_business && (
+                <div style={{ fontSize: '12px', color: '#c8952a', fontWeight: '500', marginTop: '2px' }}>📣 Business account</div>
+              )}
+            </div>
+            <button onClick={() => router.push('/post')} style={{ background: '#e85d2f', color: '#fff', border: 'none', borderRadius: '100px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>+ Post</button>
           </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '4px' }}>{user?.email}</div>
-            <div style={{ fontSize: '13px', color: '#8a8a8a' }}>{listings.length} listing{listings.length !== 1 ? 's' : ''} posted</div>
-          </div>
-          <button onClick={() => router.push('/post')} style={{ background: '#e85d2f', color: '#fff', border: 'none', borderRadius: '100px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>+ Post</button>
+
+          {/* VERIFICATION BANNER */}
+          {!profile?.is_verified && (
+            <div style={{ marginTop: '16px', background: '#fdf6e8', border: '1px solid #f0e4c0', borderRadius: '10px', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '13px', fontWeight: '600', color: '#c8952a', marginBottom: '2px' }}>Get verified ✅</div>
+                <div style={{ fontSize: '12px', color: '#8a8a8a' }}>Verified users get more trust and visibility</div>
+              </div>
+              <button onClick={async () => {
+                await supabase.from('profiles').update({ is_verified: true, verified_at: new Date().toISOString() }).eq('id', user.id)
+                setProfile({ ...profile, is_verified: true })
+              }} style={{ background: '#c8952a', color: '#fff', border: 'none', borderRadius: '100px', padding: '7px 14px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                Verify now
+              </button>
+            </div>
+          )}
+
+          {/* BUSINESS DASHBOARD LINK */}
+          {profile?.is_business && (
+            <div style={{ marginTop: '12px' }}>
+              <button onClick={() => router.push('/advertiser')} style={{ width: '100%', background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '10px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
+                📊 Go to Business Dashboard →
+              </button>
+            </div>
+          )}
         </div>
 
+        {/* TABS */}
         <div style={{ display: 'flex', background: '#e8e4de', borderRadius: '100px', padding: '4px', marginBottom: '20px', gap: '4px' }}>
           <button onClick={() => setActiveTab('my')} style={{ flex: 1, border: 'none', borderRadius: '100px', padding: '10px', fontSize: '14px', fontWeight: '500', cursor: 'pointer', background: activeTab === 'my' ? '#fff' : 'transparent', color: activeTab === 'my' ? '#1a1a1a' : '#8a8a8a' }}>
             My listings ({listings.length})
