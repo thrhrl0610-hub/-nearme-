@@ -13,6 +13,7 @@ function MessagesContent() {
   const [user, setUser] = useState<any>(null)
   const [messages, setMessages] = useState<any[]>([])
   const [conversations, setConversations] = useState<any[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
   const [newMessage, setNewMessage] = useState('')
   const [listing, setListing] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -24,19 +25,17 @@ function MessagesContent() {
       if (!user) { router.push('/auth'); return }
       setUser(user)
 
+      // 읽지 않은 알림 수
+      const { count } = await supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('read', false)
+      setUnreadCount(count || 0)
+
       if (listingId) {
         const { data } = await supabase.from('listings').select('*').eq('id', listingId).single()
         if (data) setListing(data)
         await fetchMessages(user.id)
       } else {
-        // 채팅 목록 가져오기
-        const { data } = await supabase
-          .from('messages')
-          .select('*, listings(title, price)')
-          .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-          .order('created_at', { ascending: false })
+        const { data } = await supabase.from('messages').select('*, listings(title, price)').or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`).order('created_at', { ascending: false })
         if (data) {
-          // 중복 제거 - listing_id 기준
           const seen = new Set()
           const unique = data.filter((m: any) => {
             if (seen.has(m.listing_id)) return false
@@ -53,12 +52,7 @@ function MessagesContent() {
 
   const fetchMessages = async (userId: string) => {
     if (!listingId) return
-    const { data } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('listing_id', listingId)
-      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
-      .order('created_at', { ascending: true })
+    const { data } = await supabase.from('messages').select('*').eq('listing_id', listingId).or(`sender_id.eq.${userId},receiver_id.eq.${userId}`).order('created_at', { ascending: true })
     if (data) setMessages(data)
   }
 
@@ -75,14 +69,19 @@ function MessagesContent() {
       content: newMessage.trim()
     })
     if (!error) {
+      // 알림 생성
+      await supabase.from('notifications').insert({
+        user_id: receiverId,
+        type: 'message',
+        message: `You have a new message about "${listing?.title || 'a listing'}"`,
+        listing_id: listingId
+      })
       setNewMessage('')
       await fetchMessages(user.id)
     }
   }
 
-  if (loading) return (
-    <div style={{ minHeight: '100vh', background: '#faf8f4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a8a8a' }}>Loading...</div>
-  )
+  if (loading) return <div style={{ minHeight: '100vh', background: '#faf8f4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a8a8a' }}>Loading...</div>
 
   // 채팅 목록 화면
   if (!listingId) return (
@@ -106,8 +105,7 @@ function MessagesContent() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {conversations.map((conv) => (
-              <div key={conv.id} onClick={() => router.push(`/messages?listing=${conv.listing_id}&receiver=${conv.sender_id === user?.id ? conv.receiver_id : conv.sender_id}`)}
-                style={{ background: '#fff', border: '1px solid #e8e4de', borderRadius: '14px', padding: '14px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div key={conv.id} onClick={() => router.push(`/messages?listing=${conv.listing_id}&receiver=${conv.sender_id === user?.id ? conv.receiver_id : conv.sender_id}`)} style={{ background: '#fff', border: '1px solid #e8e4de', borderRadius: '14px', padding: '14px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: '#e8f4f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>💬</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '3px' }}>{conv.listings?.title || 'Listing'}</div>
@@ -121,9 +119,12 @@ function MessagesContent() {
 
       {/* BOTTOM NAV */}
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '1px solid #e8e4de', display: 'flex', justifyContent: 'space-around', padding: '8px 0 12px' }}>
-        {[['🏠', 'Home', '/'], ['🔍', 'Browse', '/browse'], ['➕', 'Post', '/post'], ['💬', 'Chat', '/messages'], ['👤', 'Profile', '/profile']].map(([icon, label, href]) => (
-          <div key={label} onClick={() => router.push(href as string)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', cursor: 'pointer', fontSize: '11px', color: label === 'Chat' ? '#1a3a2a' : '#8a8a8a' }}>
+        {[['🏠', 'Home', '/'], ['🔍', 'Browse', '/browse'], ['➕', 'Post', '/post'], ['💬', 'Chat', '/messages'], ['🔔', 'Alerts', '/notifications'], ['👤', 'Profile', '/profile']].map(([icon, label, href]) => (
+          <div key={label} onClick={() => router.push(href as string)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', cursor: 'pointer', fontSize: '11px', color: label === 'Chat' ? '#1a3a2a' : '#8a8a8a', position: 'relative' }}>
             <div style={{ fontSize: '22px' }}>{icon}</div>
+            {label === 'Alerts' && unreadCount > 0 && (
+              <div style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#e85d2f', color: '#fff', fontSize: '10px', fontWeight: '700', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{unreadCount}</div>
+            )}
             {label}
           </div>
         ))}
