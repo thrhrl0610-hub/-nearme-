@@ -16,6 +16,9 @@ export default function ListingPage() {
   const [comment, setComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [reviewMessage, setReviewMessage] = useState('')
+  const [showReport, setShowReport] = useState(false)
+  const [reportReason, setReportReason] = useState('')
+  const [reportSent, setReportSent] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -80,6 +83,18 @@ export default function ListingPage() {
     setSubmitting(false)
   }
 
+  const handleReport = async () => {
+    if (!user) { router.push('/auth'); return }
+    if (!reportReason) return
+    await supabase.from('reports').insert({
+      reporter_id: user.id,
+      listing_id: id,
+      reason: reportReason
+    })
+    setReportSent(true)
+    setShowReport(false)
+  }
+
   const avgRating = reviews.length > 0 ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1) : null
 
   if (loading) return <div style={{ minHeight: '100vh', background: '#faf8f4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a8a8a' }}>Loading...</div>
@@ -139,14 +154,39 @@ export default function ListingPage() {
           🚀 Boost this listing — NZ$9.99
         </button>
 
-        <button onClick={() => router.push(`/messages?listing=${listing.id}&receiver=${listing.user_id}`)} style={{ width: '100%', background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '16px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', marginBottom: '24px' }}>
+        <button onClick={() => router.push(`/messages?listing=${listing.id}&receiver=${listing.user_id}`)} style={{ width: '100%', background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '16px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', marginBottom: '12px' }}>
           💬 Message seller
         </button>
+
+        {/* REPORT */}
+        {user && user.id !== listing.user_id && (
+          <div style={{ marginBottom: '24px' }}>
+            {reportSent ? (
+              <div style={{ fontSize: '13px', color: '#8a8a8a', textAlign: 'center' }}>✅ Report submitted. Thank you.</div>
+            ) : (
+              <button onClick={() => setShowReport(!showReport)} style={{ background: 'transparent', border: 'none', fontSize: '13px', color: '#8a8a8a', cursor: 'pointer', textDecoration: 'underline' }}>
+                🚩 Report this listing
+              </button>
+            )}
+            {showReport && !reportSent && (
+              <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e8e4de', padding: '16px', marginTop: '8px' }}>
+                <div style={{ fontSize: '13px', fontWeight: '500', marginBottom: '8px' }}>Why are you reporting this?</div>
+                {['Spam or scam', 'Inappropriate content', 'Wrong category', 'Already sold', 'Other'].map(reason => (
+                  <div key={reason} onClick={() => setReportReason(reason)} style={{ padding: '8px 12px', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', background: reportReason === reason ? '#e8f4f0' : 'transparent', color: reportReason === reason ? '#1a3a2a' : '#4a4a4a', marginBottom: '4px' }}>
+                    {reportReason === reason ? '✓ ' : ''}{reason}
+                  </div>
+                ))}
+                <button onClick={handleReport} disabled={!reportReason} style={{ marginTop: '8px', background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '8px 20px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', opacity: reportReason ? 1 : 0.5 }}>
+                  Submit report
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* REVIEWS */}
         <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '24px', marginBottom: '16px' }}>
           <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px' }}>Reviews {reviews.length > 0 && `(${reviews.length})`}</div>
-
           {reviews.length === 0 ? (
             <div style={{ fontSize: '14px', color: '#8a8a8a', marginBottom: '16px' }}>No reviews yet. Be the first!</div>
           ) : (
@@ -162,7 +202,6 @@ export default function ListingPage() {
               ))}
             </div>
           )}
-
           {user && user.id !== listing.user_id && (
             <div>
               <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>Leave a review</div>
