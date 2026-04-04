@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
+import BottomNav from '../components/BottomNav'
 
 export default function Home() {
   const [ads, setAds] = useState<any[]>([])
@@ -75,16 +76,11 @@ export default function Home() {
     fetchData()
   }, [activeCategory, search, radius, userLocation])
 
-  const handleAdClick = (adId: string) => {
-    router.push(`/business/${adId}`)
-  }
+  const handleAdClick = (adId: string) => router.push(`/business/${adId}`)
 
   const handleAdvertiseClick = () => {
-    if (currentUser) {
-      router.push('/advertiser')
-    } else {
-      router.push('/auth')
-    }
+    if (currentUser) router.push('/advertiser')
+    else router.push('/auth')
   }
 
   return (
@@ -136,6 +132,7 @@ export default function Home() {
         )}
       </div>
 
+      {/* CATEGORIES */}
       <div style={{ position: "relative" }}>
         <div style={{ padding: "16px 24px 0", display: "flex", gap: "8px", overflowX: "auto", scrollbarWidth: "none" }}>
           {[
@@ -158,6 +155,7 @@ export default function Home() {
       </div>
 
       <div style={{ padding: "20px 24px", maxWidth: "1100px", margin: "0 auto" }}>
+        {/* FEATURED AD */}
         {featuredAd ? (
           <div onClick={() => handleAdClick(featuredAd.id)} style={{ borderRadius: "14px", background: "linear-gradient(135deg, #1a3a2a, #4a8c5c)", padding: "28px 32px", marginBottom: "32px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
             <div>
@@ -190,27 +188,22 @@ export default function Home() {
         ) : listings.length === 0 ? (
           <div style={{ textAlign: "center", padding: "40px", color: "#8a8a8a", fontSize: "14px" }}>No listings yet. Be the first to post!</div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "16px", marginBottom: "36px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "36px" }}>
             {listings.map((item) => (
-              <div key={item.id} onClick={() => router.push(`/listings/${item.id}`)} style={{ background: "#fff", borderRadius: "14px", border: "1px solid #e8e4de", overflow: "hidden", cursor: "pointer" }}>
-                <div style={{ width: "100%", aspectRatio: "4/3", background: "#e8f4f0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "40px" }}>
+              <div key={item.id} onClick={() => router.push(`/listings/${item.id}`)} style={{ background: "#fff", borderRadius: "14px", border: "1px solid #e8e4de", display: "flex", alignItems: "center", gap: "14px", padding: "12px 16px", cursor: "pointer" }}>
+                <div style={{ width: "64px", height: "64px", borderRadius: "10px", background: "#e8f4f0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden" }}>
                   {item.image_url
                     ? <img src={item.image_url} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    : <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "6px" }}>
-                        <span style={{ fontSize: "28px" }}>📦</span>
-                        <span style={{ fontSize: "12px", color: "#4a8c5c" }}>{item.category}</span>
-                      </div>
+                    : <span style={{ fontSize: "28px" }}>📦</span>
                   }
                 </div>
-                <div style={{ padding: "12px 14px" }}>
-                  <div style={{ fontFamily: "Georgia, serif", fontSize: "18px", fontWeight: "700", marginBottom: "2px" }}>
-                    {item.price === 0 || item.price === null ? "Free" : `$${item.price}`}
-                  </div>
-                  <div style={{ fontSize: "14px", color: "#4a4a4a", marginBottom: "8px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.title}</div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <div style={{ fontSize: "12px", color: "#4a8c5c", fontWeight: "500" }}>📦 {item.category}</div>
-                    <div style={{ fontSize: "12px", color: "#8a8a8a" }}>{new Date(item.created_at).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' })}</div>
-                  </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: "14px", fontWeight: "600", marginBottom: "3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.title}</div>
+                  <div style={{ fontSize: "12px", color: "#4a8c5c", fontWeight: "500", marginBottom: "3px" }}>📦 {item.category}</div>
+                  <div style={{ fontSize: "12px", color: "#8a8a8a" }}>{new Date(item.created_at).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' })}</div>
+                </div>
+                <div style={{ fontFamily: "Georgia, serif", fontSize: "18px", fontWeight: "700", flexShrink: 0 }}>
+                  {item.price === 0 || item.price === null ? "Free" : `$${item.price}`}
                 </div>
               </div>
             ))}
@@ -223,7 +216,7 @@ export default function Home() {
               <div style={{ fontFamily: "Georgia, serif", fontSize: "20px" }}>Hiring today</div>
               <div onClick={() => router.push('/browse')} style={{ fontSize: "13px", color: "#4a8c5c", cursor: "pointer", textDecoration: "underline" }}>See all jobs →</div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "12px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               {jobs.map((job) => (
                 <div key={job.id} onClick={() => router.push(`/jobs/${job.id}`)} style={{ background: "#fff", border: "1px solid #e8e4de", borderRadius: "14px", padding: "16px 18px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer" }}>
                   <div style={{ width: "44px", height: "44px", borderRadius: "10px", background: "#e8f4f0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", flexShrink: 0 }}>💼</div>
@@ -242,20 +235,7 @@ export default function Home() {
         )}
       </div>
 
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#fff", borderTop: "1px solid #e8e4de", display: "flex", justifyContent: "space-around", padding: "8px 0 12px" }}>
-        {[
-          ["🏠", "Home", "/"],
-          ["🔍", "Browse", "/browse"],
-          ["➕", "Post", "/post"],
-          ["💬", "Chat", "/messages"],
-          ["👤", "Profile", "/profile"]
-        ].map(([icon, label, href]) => (
-          <div key={label} onClick={() => router.push(href as string)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px", cursor: "pointer", fontSize: "11px", color: label === "Home" ? "#1a3a2a" : "#8a8a8a" }}>
-            <div style={{ fontSize: "22px" }}>{icon}</div>
-            {label}
-          </div>
-        ))}
-      </div>
+      <BottomNav />
     </main>
   )
 }
