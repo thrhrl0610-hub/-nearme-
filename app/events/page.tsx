@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
+import BottomNav from '../../components/BottomNav'
 
 export default function EventsPage() {
   const [events, setEvents] = useState<any[]>([])
@@ -30,7 +31,6 @@ export default function EventsPage() {
         <button onClick={() => router.push('/post')} style={{ background: "#e85d2f", color: "#fff", border: "none", borderRadius: "100px", padding: "8px 18px", fontSize: "13px", fontWeight: "600", cursor: "pointer" }}>+ Post Event</button>
       </nav>
 
-      {/* HERO */}
       <div style={{ background: "linear-gradient(135deg, #1a3a2a, #4a8c5c)", padding: "32px 24px", textAlign: "center" }}>
         <div style={{ fontSize: "40px", marginBottom: "12px" }}>🎉</div>
         <h1 style={{ fontFamily: "Georgia, serif", fontSize: "28px", color: "#fff", marginBottom: "8px" }}>Local Events</h1>
@@ -77,15 +77,7 @@ export default function EventsPage() {
         )}
       </div>
 
-      {/* BOTTOM NAV */}
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#fff", borderTop: "1px solid #e8e4de", display: "flex", justifyContent: "space-around", padding: "8px 0 12px" }}>
-        {[["🏠", "Home", "/"], ["🔍", "Browse", "/browse"], ["➕", "Post", "/post"], ["💬", "Chat", "/messages"], ["👤", "Profile", "/profile"]].map(([icon, label, href]) => (
-          <div key={label} onClick={() => router.push(href as string)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px", cursor: "pointer", fontSize: "11px", color: "#8a8a8a" }}>
-            <div style={{ fontSize: "22px" }}>{icon}</div>
-            {label}
-          </div>
-        ))}
-      </div>
+      <BottomNav />
     </main>
   )
 }

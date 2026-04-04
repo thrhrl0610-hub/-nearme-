@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
+import BottomNav from '../../../components/BottomNav'
 
 export default function ListingPage() {
   const { id } = useParams()
@@ -29,17 +30,14 @@ export default function ListingPage() {
         const { data: sellerData } = await supabase.from('profiles').select('*').eq('id', data.user_id).single()
         if (sellerData) setSeller(sellerData)
       }
-
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         setUser(user)
         const { data: saveData } = await supabase.from('saves').select('*').eq('user_id', user.id).eq('listing_id', id).single()
         if (saveData) setSaved(true)
       }
-
       const { data: reviewsData } = await supabase.from('reviews').select('*').eq('listing_id', id).order('created_at', { ascending: false })
       if (reviewsData) setReviews(reviewsData)
-
       setLoading(false)
     }
     fetchData()
@@ -91,11 +89,7 @@ export default function ListingPage() {
   const handleReport = async () => {
     if (!user) { router.push('/auth'); return }
     if (!reportReason) return
-    await supabase.from('reports').insert({
-      reporter_id: user.id,
-      listing_id: id,
-      reason: reportReason
-    })
+    await supabase.from('reports').insert({ reporter_id: user.id, listing_id: id, reason: reportReason })
     setReportSent(true)
     setShowReport(false)
   }
@@ -144,7 +138,6 @@ export default function ListingPage() {
           </div>
         </div>
 
-        {/* SELLER INFO */}
         <div onClick={() => router.push(`/user/${listing.user_id}`)} style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
           <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#1a3a2a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', color: '#fff', fontWeight: '700', flexShrink: 0 }}>
             {seller?.email?.[0].toUpperCase() || '?'}
@@ -174,7 +167,6 @@ export default function ListingPage() {
           💬 Message seller
         </button>
 
-        {/* REPORT */}
         {user && user.id !== listing.user_id && (
           <div style={{ marginBottom: '24px' }}>
             {reportSent ? (
@@ -200,7 +192,6 @@ export default function ListingPage() {
           </div>
         )}
 
-        {/* REVIEWS */}
         <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '24px', marginBottom: '16px' }}>
           <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px' }}>Reviews {reviews.length > 0 && `(${reviews.length})`}</div>
           {reviews.length === 0 ? (
@@ -236,14 +227,7 @@ export default function ListingPage() {
         </div>
       </div>
 
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '1px solid #e8e4de', display: 'flex', justifyContent: 'space-around', padding: '8px 0 12px' }}>
-        {[['🏠', 'Home', '/'], ['🔍', 'Browse', '/browse'], ['➕', 'Post', '/post'], ['💬', 'Chat', '/messages'], ['👤', 'Profile', '/profile']].map(([icon, label, href]) => (
-          <div key={label} onClick={() => router.push(href as string)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', cursor: 'pointer', fontSize: '11px', color: '#8a8a8a' }}>
-            <div style={{ fontSize: '22px' }}>{icon}</div>
-            {label}
-          </div>
-        ))}
-      </div>
+      <BottomNav />
     </main>
   )
 }

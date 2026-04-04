@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
+import BottomNav from '../../components/BottomNav'
 
 export default function Browse() {
   const [listings, setListings] = useState<any[]>([])
@@ -14,11 +15,9 @@ export default function Browse() {
     const fetchListings = async () => {
       setLoading(true)
       let query = supabase.from('listings').select('*').order('created_at', { ascending: false })
-
       if (search) {
         query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%,category.ilike.%${search}%`)
       }
-
       if (activeCategory !== 'All') query = query.eq('category', activeCategory)
       const { data, error } = await query
       if (!error && data) setListings(data)
@@ -35,13 +34,11 @@ export default function Browse() {
   const daysLeft = (item: any) => {
     if (!item.expires_at) return null
     const diff = new Date(item.expires_at).getTime() - new Date().getTime()
-    const days = Math.ceil(diff / (1000 * 60 * 60 * 24))
-    return days
+    return Math.ceil(diff / (1000 * 60 * 60 * 24))
   }
 
   return (
     <main style={{ fontFamily: "'DM Sans', sans-serif", background: "#faf8f4", minHeight: "100vh", paddingBottom: "80px" }}>
-      {/* NAV */}
       <nav style={{ background: "#1a3a2a", padding: "0 24px", height: "58px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ fontFamily: "Georgia, serif", fontSize: "22px", color: "#fff" }}>
           near<span style={{ color: "#7dcf9a", fontStyle: "italic" }}>me</span>
@@ -49,7 +46,6 @@ export default function Browse() {
         <button onClick={() => router.push('/post')} style={{ background: "#e85d2f", color: "#fff", border: "none", borderRadius: "100px", padding: "8px 18px", fontSize: "13px", fontWeight: "600", cursor: "pointer" }}>+ Post</button>
       </nav>
 
-      {/* SEARCH */}
       <div style={{ background: "#1a3a2a", padding: "10px 24px" }}>
         <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="🔍 Search listings, categories, descriptions..." style={{ width: "100%", border: "none", borderRadius: "100px", padding: "10px 18px", fontSize: "14px", outline: "none", boxSizing: "border-box", background: "rgba(255,255,255,0.15)", color: "#fff" }} />
       </div>
@@ -60,7 +56,6 @@ export default function Browse() {
         </div>
       )}
 
-      {/* CATEGORIES */}
       <div style={{ position: "relative" }}>
         <div style={{ padding: "16px 24px", display: "flex", gap: "8px", overflowX: "auto", scrollbarWidth: "none" }}>
           {[
@@ -78,7 +73,6 @@ export default function Browse() {
         <div style={{ position: "absolute", right: 0, top: 0, height: "100%", width: "48px", background: "linear-gradient(to left, #faf8f4, transparent)", pointerEvents: "none" }} />
       </div>
 
-      {/* LISTINGS */}
       <div style={{ padding: "0 24px 20px", maxWidth: "1100px", margin: "0 auto" }}>
         {loading ? (
           <div style={{ textAlign: "center", padding: "60px", color: "#8a8a8a" }}>Loading...</div>
@@ -127,15 +121,7 @@ export default function Browse() {
         )}
       </div>
 
-      {/* BOTTOM NAV */}
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#fff", borderTop: "1px solid #e8e4de", display: "flex", justifyContent: "space-around", padding: "8px 0 12px" }}>
-        {[["🏠", "Home", "/"], ["🔍", "Browse", "/browse"], ["➕", "Post", "/post"], ["💬", "Chat", "/messages"], ["👤", "Profile", "/profile"]].map(([icon, label, href]) => (
-          <div key={label} onClick={() => router.push(href as string)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px", cursor: "pointer", fontSize: "11px", color: label === "Browse" ? "#1a3a2a" : "#8a8a8a" }}>
-            <div style={{ fontSize: "22px" }}>{icon}</div>
-            {label}
-          </div>
-        ))}
-      </div>
+      <BottomNav />
     </main>
   )
 }

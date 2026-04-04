@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
+import BottomNav from '../../../components/BottomNav'
 
 export default function UserProfilePage() {
   const { id } = useParams()
@@ -15,13 +16,10 @@ export default function UserProfilePage() {
     const fetchData = async () => {
       const { data: profileData } = await supabase.from('profiles').select('*').eq('id', id).single()
       if (profileData) setProfile(profileData)
-
       const { data: listingsData } = await supabase.from('listings').select('*').eq('user_id', id).order('created_at', { ascending: false })
       if (listingsData) setListings(listingsData)
-
       const { data: reviewsData } = await supabase.from('reviews').select('*').eq('seller_id', id).order('created_at', { ascending: false })
       if (reviewsData) setReviews(reviewsData)
-
       setLoading(false)
     }
     fetchData()
@@ -41,7 +39,6 @@ export default function UserProfilePage() {
       </nav>
 
       <div style={{ maxWidth: '680px', margin: '0 auto', padding: '24px' }}>
-        {/* PROFILE CARD */}
         <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '24px', marginBottom: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
             <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#1a3a2a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', color: '#fff', fontWeight: '700', flexShrink: 0 }}>
@@ -59,7 +56,6 @@ export default function UserProfilePage() {
           </div>
         </div>
 
-        {/* LISTINGS */}
         <div style={{ fontFamily: 'Georgia, serif', fontSize: '20px', marginBottom: '16px' }}>Listings</div>
         {listings.length === 0 ? (
           <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '40px', textAlign: 'center', color: '#8a8a8a', fontSize: '14px' }}>No listings yet.</div>
@@ -80,7 +76,6 @@ export default function UserProfilePage() {
           </div>
         )}
 
-        {/* REVIEWS */}
         {reviews.length > 0 && (
           <>
             <div style={{ fontFamily: 'Georgia, serif', fontSize: '20px', marginBottom: '16px' }}>Reviews</div>
@@ -99,15 +94,7 @@ export default function UserProfilePage() {
         )}
       </div>
 
-      {/* BOTTOM NAV */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '1px solid #e8e4de', display: 'flex', justifyContent: 'space-around', padding: '8px 0 12px' }}>
-        {[['🏠', 'Home', '/'], ['🔍', 'Browse', '/browse'], ['➕', 'Post', '/post'], ['💬', 'Chat', '/messages'], ['👤', 'Profile', '/profile']].map(([icon, label, href]) => (
-          <div key={label} onClick={() => router.push(href as string)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', cursor: 'pointer', fontSize: '11px', color: '#8a8a8a' }}>
-            <div style={{ fontSize: '22px' }}>{icon}</div>
-            {label}
-          </div>
-        ))}
-      </div>
+      <BottomNav />
     </main>
   )
 }

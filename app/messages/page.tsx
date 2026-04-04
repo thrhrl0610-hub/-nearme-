@@ -3,6 +3,7 @@ import { Suspense } from 'react'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
+import BottomNav from '../../components/BottomNav'
 
 function MessagesContent() {
   const router = useRouter()
@@ -25,7 +26,6 @@ function MessagesContent() {
       if (!user) { router.push('/auth'); return }
       setUser(user)
 
-      // 읽지 않은 알림 수
       const { count } = await supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('read', false)
       setUnreadCount(count || 0)
 
@@ -69,7 +69,6 @@ function MessagesContent() {
       content: newMessage.trim()
     })
     if (!error) {
-      // 알림 생성
       await supabase.from('notifications').insert({
         user_id: receiverId,
         type: 'message',
@@ -94,7 +93,6 @@ function MessagesContent() {
 
       <div style={{ padding: '20px 24px' }}>
         <div style={{ fontFamily: 'Georgia, serif', fontSize: '20px', marginBottom: '16px' }}>Messages</div>
-
         {conversations.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: '#8a8a8a' }}>
             <div style={{ fontSize: '40px', marginBottom: '12px' }}>💬</div>
@@ -117,22 +115,11 @@ function MessagesContent() {
         )}
       </div>
 
-      {/* BOTTOM NAV */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '1px solid #e8e4de', display: 'flex', justifyContent: 'space-around', padding: '8px 0 12px' }}>
-        {[['🏠', 'Home', '/'], ['🔍', 'Browse', '/browse'], ['➕', 'Post', '/post'], ['💬', 'Chat', '/messages'], ['🔔', 'Alerts', '/notifications'], ['👤', 'Profile', '/profile']].map(([icon, label, href]) => (
-          <div key={label} onClick={() => router.push(href as string)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', cursor: 'pointer', fontSize: '11px', color: label === 'Chat' ? '#1a3a2a' : '#8a8a8a', position: 'relative' }}>
-            <div style={{ fontSize: '22px' }}>{icon}</div>
-            {label === 'Alerts' && unreadCount > 0 && (
-              <div style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#e85d2f', color: '#fff', fontSize: '10px', fontWeight: '700', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{unreadCount}</div>
-            )}
-            {label}
-          </div>
-        ))}
-      </div>
+      <BottomNav />
     </main>
   )
 
-  // 채팅방 화면
+  // 채팅방 화면 (BottomNav 없음 - 입력창이 하단에 있어서)
   return (
     <main style={{ minHeight: '100vh', background: '#faf8f4', display: 'flex', flexDirection: 'column' }}>
       <nav style={{ background: '#1a3a2a', padding: '0 24px', height: '58px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>

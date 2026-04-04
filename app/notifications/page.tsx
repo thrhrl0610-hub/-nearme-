@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
+import BottomNav from '../../components/BottomNav'
 
 export default function NotificationsPage() {
   const router = useRouter()
@@ -12,13 +13,9 @@ export default function NotificationsPage() {
     const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/auth'); return }
-
       const { data } = await supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
       if (data) setNotifications(data)
-
-      // Mark all as read
       await supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false)
-
       setLoading(false)
     }
     fetchData()
@@ -37,7 +34,6 @@ export default function NotificationsPage() {
 
       <div style={{ maxWidth: '680px', margin: '0 auto', padding: '24px' }}>
         <div style={{ fontFamily: 'Georgia, serif', fontSize: '22px', marginBottom: '20px' }}>Notifications</div>
-
         {notifications.length === 0 ? (
           <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '60px', textAlign: 'center', color: '#8a8a8a' }}>
             <div style={{ fontSize: '40px', marginBottom: '12px' }}>🔔</div>
@@ -64,15 +60,7 @@ export default function NotificationsPage() {
         )}
       </div>
 
-      {/* BOTTOM NAV */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '1px solid #e8e4de', display: 'flex', justifyContent: 'space-around', padding: '8px 0 12px' }}>
-        {[['🏠', 'Home', '/'], ['🔍', 'Browse', '/browse'], ['➕', 'Post', '/post'], ['💬', 'Chat', '/messages'], ['👤', 'Profile', '/profile']].map(([icon, label, href]) => (
-          <div key={label} onClick={() => router.push(href as string)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', cursor: 'pointer', fontSize: '11px', color: '#8a8a8a' }}>
-            <div style={{ fontSize: '22px' }}>{icon}</div>
-            {label}
-          </div>
-        ))}
-      </div>
+      <BottomNav />
     </main>
   )
 }
