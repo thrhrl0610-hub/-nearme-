@@ -44,8 +44,19 @@ export default function Home() {
       if (activeCategory !== 'All') query = query.eq('category', activeCategory)
       const { data, error } = await query
       if (!error && data) {
+        // 만료된 boost 제거
+        const now = new Date()
+        const processed = data.map(item => ({
+          ...item,
+          is_boosted: item.is_boosted && item.boosted_until && new Date(item.boosted_until) > now
+        }))
+        // boosted 먼저, 나머지는 최신순
+        const sorted = [
+          ...processed.filter(i => i.is_boosted),
+          ...processed.filter(i => !i.is_boosted)
+        ]
         if (userLocation) {
-          const filtered = data.filter((item) => {
+          const filtered = sorted.filter((item) => {
             if (!item.latitude || !item.longitude) return true
             const R = 6371
             const dLat = (item.latitude - userLocation.lat) * Math.PI / 180
@@ -58,7 +69,7 @@ export default function Home() {
           })
           setListings(filtered)
         } else {
-          setListings(data)
+          setListings(sorted)
         }
       }
 
@@ -155,7 +166,6 @@ export default function Home() {
       </div>
 
       <div style={{ padding: "20px 24px", maxWidth: "1100px", margin: "0 auto" }}>
-        {/* FEATURED AD */}
         {featuredAd ? (
           <div onClick={() => handleAdClick(featuredAd.id)} style={{ borderRadius: "14px", background: "linear-gradient(135deg, #1a3a2a, #4a8c5c)", padding: "28px 32px", marginBottom: "32px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
             <div>
@@ -190,19 +200,22 @@ export default function Home() {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "36px" }}>
             {listings.map((item) => (
-              <div key={item.id} onClick={() => router.push(`/listings/${item.id}`)} style={{ background: "#fff", borderRadius: "14px", border: "1px solid #e8e4de", display: "flex", alignItems: "center", gap: "14px", padding: "12px 16px", cursor: "pointer" }}>
-                <div style={{ width: "64px", height: "64px", borderRadius: "10px", background: "#e8f4f0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden" }}>
+              <div key={item.id} onClick={() => router.push(`/listings/${item.id}`)} style={{ background: "#fff", borderRadius: "14px", border: `1px solid ${item.is_boosted ? '#e85d2f' : '#e8e4de'}`, display: "flex", alignItems: "center", gap: "14px", padding: "12px 16px", cursor: "pointer", position: "relative" }}>
+                {item.is_boosted && (
+                  <div style={{ position: "absolute", top: "-1px", left: "12px", background: "#e85d2f", color: "#fff", fontSize: "10px", fontWeight: "700", padding: "2px 8px", borderRadius: "0 0 6px 6px" }}>🚀 Boosted</div>
+                )}
+                <div style={{ width: "64px", height: "64px", borderRadius: "10px", background: "#e8f4f0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden", marginTop: item.is_boosted ? "8px" : "0" }}>
                   {item.image_url
                     ? <img src={item.image_url} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     : <span style={{ fontSize: "28px" }}>📦</span>
                   }
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ flex: 1, minWidth: 0, marginTop: item.is_boosted ? "8px" : "0" }}>
                   <div style={{ fontSize: "14px", fontWeight: "600", marginBottom: "3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.title}</div>
                   <div style={{ fontSize: "12px", color: "#4a8c5c", fontWeight: "500", marginBottom: "3px" }}>📦 {item.category}</div>
                   <div style={{ fontSize: "12px", color: "#8a8a8a" }}>{new Date(item.created_at).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' })}</div>
                 </div>
-                <div style={{ fontFamily: "Georgia, serif", fontSize: "18px", fontWeight: "700", flexShrink: 0 }}>
+                <div style={{ fontFamily: "Georgia, serif", fontSize: "18px", fontWeight: "700", flexShrink: 0, marginTop: item.is_boosted ? "8px" : "0" }}>
                   {item.price === 0 || item.price === null ? "Free" : `$${item.price}`}
                 </div>
               </div>
