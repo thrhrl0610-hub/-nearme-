@@ -44,13 +44,11 @@ export default function Home() {
       if (activeCategory !== 'All') query = query.eq('category', activeCategory)
       const { data, error } = await query
       if (!error && data) {
-        // 만료된 boost 제거
         const now = new Date()
         const processed = data.map(item => ({
           ...item,
           is_boosted: item.is_boosted && item.boosted_until && new Date(item.boosted_until) > now
         }))
-        // boosted 먼저, 나머지는 최신순
         const sorted = [
           ...processed.filter(i => i.is_boosted),
           ...processed.filter(i => !i.is_boosted)
@@ -153,11 +151,13 @@ export default function Home() {
             { label: "🎉 Events", value: "Events" },
             { label: "🏘️ Real Estate", value: "Real Estate" },
             { label: "🛠️ Services", value: "Services" },
+            { label: "👥 Community", value: "Community" },
           ].map((cat) => (
             <button key={cat.value} onClick={() => {
               if (cat.value === 'Jobs') router.push('/browse?category=Jobs')
               else if (cat.value === 'Events') router.push('/events')
               else if (cat.value === 'Real Estate') router.push('/realestate')
+              else if (cat.value === 'Community') router.push('/community')
               else setActiveCategory(cat.value)
             }} style={{ display: "flex", alignItems: "center", gap: "6px", border: activeCategory === cat.value ? "none" : "1.5px solid #e8e4de", borderRadius: "100px", padding: "7px 14px", fontSize: "13px", background: activeCategory === cat.value ? "#1a3a2a" : "#fff", color: activeCategory === cat.value ? "#fff" : "#4a4a4a", cursor: "pointer", whiteSpace: "nowrap" }}>{cat.label}</button>
           ))}
