@@ -16,14 +16,6 @@ export default function Home() {
   const router = useRouter()
 
   useEffect(() => {
-    // 첫 방문자 온보딩
-    const visited = localStorage.getItem('nearme_visited')
-    if (!visited) {
-      localStorage.setItem('nearme_visited', 'true')
-      router.push('/onboarding')
-      return
-    }
-
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude: lat, longitude: lng } = pos.coords
@@ -79,7 +71,6 @@ export default function Home() {
 
   return (
     <main style={{ fontFamily: "'DM Sans', sans-serif", background: "#faf8f4", minHeight: "100vh", paddingBottom: "80px" }}>
-      {/* NAV */}
       <nav style={{ background: "#1a3a2a", padding: "0 24px", height: "58px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ fontFamily: "Georgia, serif", fontSize: "22px", color: "#fff" }}>
           near<span style={{ color: "#7dcf9a", fontStyle: "italic" }}>me</span>
@@ -93,12 +84,10 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* SEARCH BAR */}
       <div style={{ background: "#1a3a2a", padding: "10px 24px" }}>
         <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="🔍 Search listings..." style={{ width: "100%", border: "none", borderRadius: "100px", padding: "10px 18px", fontSize: "14px", outline: "none", boxSizing: "border-box", background: "rgba(255,255,255,0.15)", color: "#fff" }} />
       </div>
 
-      {/* LOCATION BAR */}
       <div style={{ background: "#2d5a3d", padding: "10px 24px", display: "flex", alignItems: "center", gap: "8px", color: "rgba(255,255,255,0.85)", fontSize: "13px" }}>
         📍 <span style={{ whiteSpace: "nowrap" }}>Showing listings within <strong style={{ color: "#fff" }}>&nbsp;{radius} km&nbsp;</strong> of you</span>
         <div style={{ marginLeft: "auto", display: "flex", gap: "4px" }}>
@@ -108,7 +97,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* SPONSORED STRIP */}
       <div style={{ background: "#fdf6e8", borderBottom: "1px solid #f0e4c0", padding: "10px 24px", display: "flex", alignItems: "center", gap: "14px", overflowX: "auto" }}>
         <div style={{ fontSize: "10px", fontWeight: "600", color: "#c8952a", textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap" }}>📣 Sponsored</div>
         {ads.map((ad) => (
@@ -123,7 +111,6 @@ export default function Home() {
         ))}
       </div>
 
-      {/* CATEGORIES */}
       <div style={{ position: "relative" }}>
         <div style={{ padding: "16px 24px 0", display: "flex", gap: "8px", overflowX: "auto", scrollbarWidth: "none" }}>
           {[
@@ -141,7 +128,6 @@ export default function Home() {
       </div>
 
       <div style={{ padding: "20px 24px", maxWidth: "1100px", margin: "0 auto" }}>
-        {/* FEATURED AD */}
         <div style={{ borderRadius: "14px", background: "linear-gradient(135deg, #1a3a2a, #4a8c5c)", padding: "28px 32px", marginBottom: "32px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
           <div>
             <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "8px" }}>Promoted Business</div>
@@ -152,7 +138,6 @@ export default function Home() {
           <div style={{ fontSize: "64px" }}>🥦</div>
         </div>
 
-        {/* LISTINGS */}
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "14px" }}>
           <div style={{ fontFamily: "Georgia, serif", fontSize: "20px" }}>Near you</div>
           <div onClick={() => router.push('/browse')} style={{ fontSize: "13px", color: "#4a8c5c", cursor: "pointer", textDecoration: "underline" }}>See all →</div>
@@ -190,7 +175,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* JOBS */}
         {jobs.length > 0 && (
           <>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "14px" }}>
@@ -216,7 +200,6 @@ export default function Home() {
         )}
       </div>
 
-      {/* BOTTOM NAV */}
       <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#fff", borderTop: "1px solid #e8e4de", display: "flex", justifyContent: "space-around", padding: "8px 0 12px" }}>
         {[
           ["🏠", "Home", "/"],
