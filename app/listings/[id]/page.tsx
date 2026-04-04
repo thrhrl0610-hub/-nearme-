@@ -7,6 +7,7 @@ export default function ListingPage() {
   const { id } = useParams()
   const router = useRouter()
   const [listing, setListing] = useState<any>(null)
+  const [seller, setSeller] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -23,7 +24,11 @@ export default function ListingPage() {
   useEffect(() => {
     const fetchData = async () => {
       const { data, error } = await supabase.from('listings').select('*').eq('id', id).single()
-      if (!error && data) setListing(data)
+      if (!error && data) {
+        setListing(data)
+        const { data: sellerData } = await supabase.from('profiles').select('*').eq('id', data.user_id).single()
+        if (sellerData) setSeller(sellerData)
+      }
 
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
@@ -136,6 +141,17 @@ export default function ListingPage() {
           )}
           <div style={{ fontSize: '13px', color: '#8a8a8a' }}>
             📦 {listing.category} · 🕐 {new Date(listing.created_at).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' })}
+          </div>
+        </div>
+
+        {/* SELLER INFO */}
+        <div onClick={() => router.push(`/user/${listing.user_id}`)} style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+          <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#1a3a2a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', color: '#fff', fontWeight: '700', flexShrink: 0 }}>
+            {seller?.email?.[0].toUpperCase() || '?'}
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '14px', fontWeight: '600' }}>{seller?.full_name || seller?.email?.split('@')[0] || 'NearMe User'}</div>
+            <div style={{ fontSize: '12px', color: '#8a8a8a' }}>View profile →</div>
           </div>
         </div>
 
