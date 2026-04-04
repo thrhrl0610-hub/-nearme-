@@ -44,7 +44,6 @@ export default function ProfilePage() {
       </nav>
 
       <div style={{ maxWidth: '680px', margin: '0 auto', padding: '24px' }}>
-        {/* PROFILE CARD */}
         <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '24px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#1a3a2a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', color: '#fff', fontWeight: '700' }}>
             {user?.email?.[0].toUpperCase()}
@@ -56,7 +55,6 @@ export default function ProfilePage() {
           <button onClick={() => router.push('/post')} style={{ background: '#e85d2f', color: '#fff', border: 'none', borderRadius: '100px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>+ Post</button>
         </div>
 
-        {/* MY LISTINGS */}
         <div style={{ fontFamily: 'Georgia, serif', fontSize: '20px', marginBottom: '16px' }}>My listings</div>
 
         {listings.length === 0 ? (
@@ -78,6 +76,7 @@ export default function ProfilePage() {
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button onClick={() => router.push(`/listings/${item.id}`)} style={{ background: '#e8f4f0', color: '#1a3a2a', border: 'none', borderRadius: '8px', padding: '8px 14px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>View</button>
+                  <button onClick={() => router.push(`/listings/edit?id=${item.id}`)} style={{ background: '#fdf6e8', color: '#c8952a', border: 'none', borderRadius: '8px', padding: '8px 14px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Edit</button>
                   <button onClick={() => handleDelete(item.id)} style={{ background: '#fde8e8', color: '#c0392b', border: 'none', borderRadius: '8px', padding: '8px 14px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Delete</button>
                 </div>
               </div>
@@ -86,7 +85,6 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* BOTTOM NAV */}
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '1px solid #e8e4de', display: 'flex', justifyContent: 'space-around', padding: '8px 0 12px' }}>
         {[['🏠', 'Home', '/'], ['🔍', 'Browse', '/browse'], ['➕', 'Post', '/post'], ['💬', 'Chat', '/messages'], ['👤', 'Profile', '/profile']].map(([icon, label, href]) => (
           <div key={label} onClick={() => router.push(href as string)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', cursor: 'pointer', fontSize: '11px', color: label === 'Profile' ? '#1a3a2a' : '#8a8a8a' }}>
