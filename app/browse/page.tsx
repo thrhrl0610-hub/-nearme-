@@ -12,8 +12,13 @@ export default function Browse() {
 
   useEffect(() => {
     const fetchListings = async () => {
+      setLoading(true)
       let query = supabase.from('listings').select('*').order('created_at', { ascending: false })
-      if (search) query = query.ilike('title', `%${search}%`)
+
+      if (search) {
+        query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%,category.ilike.%${search}%`)
+      }
+
       if (activeCategory !== 'All') query = query.eq('category', activeCategory)
       const { data, error } = await query
       if (!error && data) setListings(data)
@@ -34,8 +39,20 @@ export default function Browse() {
 
       {/* SEARCH */}
       <div style={{ background: "#1a3a2a", padding: "10px 24px" }}>
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="🔍 Search listings..." style={{ width: "100%", border: "none", borderRadius: "100px", padding: "10px 18px", fontSize: "14px", outline: "none", boxSizing: "border-box", background: "rgba(255,255,255,0.15)", color: "#fff" }} />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="🔍 Search listings, categories, descriptions..."
+          style={{ width: "100%", border: "none", borderRadius: "100px", padding: "10px 18px", fontSize: "14px", outline: "none", boxSizing: "border-box", background: "rgba(255,255,255,0.15)", color: "#fff" }}
+        />
       </div>
+
+      {/* SEARCH RESULTS COUNT */}
+      {search && (
+        <div style={{ padding: "10px 24px", fontSize: "13px", color: "#8a8a8a" }}>
+          {loading ? 'Searching...' : `${listings.length} result${listings.length !== 1 ? 's' : ''} for "${search}"`}
+        </div>
+      )}
 
       {/* CATEGORIES */}
       <div style={{ position: "relative" }}>
@@ -60,7 +77,11 @@ export default function Browse() {
         {loading ? (
           <div style={{ textAlign: "center", padding: "60px", color: "#8a8a8a" }}>Loading...</div>
         ) : listings.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px", color: "#8a8a8a" }}>No listings found.</div>
+          <div style={{ textAlign: "center", padding: "60px", color: "#8a8a8a" }}>
+            <div style={{ fontSize: "40px", marginBottom: "12px" }}>🔍</div>
+            <div style={{ fontSize: "16px", fontWeight: "600", marginBottom: "6px" }}>No listings found</div>
+            <div style={{ fontSize: "14px" }}>Try a different search or category</div>
+          </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "16px" }}>
             {listings.map((item) => (
