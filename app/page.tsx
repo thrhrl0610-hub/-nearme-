@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 
 export default function Home() {
   const [ads, setAds] = useState<any[]>([])
+  const [featuredAd, setFeaturedAd] = useState<any>(null)
   const [listings, setListings] = useState<any[]>([])
   const [jobs, setJobs] = useState<any[]>([])
   const [activeCategory, setActiveCategory] = useState('All')
@@ -62,7 +63,10 @@ export default function Home() {
       if (jobsData) setJobs(jobsData)
 
       const { data: adsData } = await supabase.from('ads').select('*').limit(6)
-      if (adsData) setAds(adsData)
+      if (adsData) {
+        setAds(adsData)
+        if (adsData.length > 0) setFeaturedAd(adsData[0])
+      }
 
       setLoading(false)
     }
@@ -97,18 +101,25 @@ export default function Home() {
         </div>
       </div>
 
+      {/* SPONSORED STRIP */}
       <div style={{ background: "#fdf6e8", borderBottom: "1px solid #f0e4c0", padding: "10px 24px", display: "flex", alignItems: "center", gap: "14px", overflowX: "auto" }}>
-        <div style={{ fontSize: "10px", fontWeight: "600", color: "#c8952a", textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap" }}>📣 Sponsored</div>
-        {ads.map((ad) => (
-          <div key={ad.id} style={{ display: "flex", alignItems: "center", gap: "10px", background: "#fff", border: "1px solid #f0e4c0", borderRadius: "8px", padding: "8px 14px", flexShrink: 0, cursor: "pointer" }}>
-            <div style={{ fontSize: "24px" }}>{ad.emoji}</div>
-            <div>
-              <div style={{ fontSize: "13px", fontWeight: "600" }}>{ad.business_name}</div>
-              <div style={{ fontSize: "11px", color: "#8a8a8a" }}>{ad.description}</div>
-              <div style={{ fontSize: "11px", color: "#4a8c5c", fontWeight: "500" }}>{ad.location_name}</div>
-            </div>
+        <div onClick={() => router.push('/advertiser')} style={{ fontSize: "10px", fontWeight: "600", color: "#c8952a", textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap", cursor: "pointer" }}>📣 Sponsored</div>
+        {ads.length === 0 ? (
+          <div onClick={() => router.push('/advertiser')} style={{ display: "flex", alignItems: "center", gap: "10px", background: "#fff", border: "1px dashed #f0e4c0", borderRadius: "8px", padding: "8px 14px", flexShrink: 0, cursor: "pointer" }}>
+            <div style={{ fontSize: "13px", color: "#c8952a" }}>➕ Advertise your business here</div>
           </div>
-        ))}
+        ) : (
+          ads.map((ad) => (
+            <div key={ad.id} onClick={() => router.push('/advertiser')} style={{ display: "flex", alignItems: "center", gap: "10px", background: "#fff", border: "1px solid #f0e4c0", borderRadius: "8px", padding: "8px 14px", flexShrink: 0, cursor: "pointer" }}>
+              <div style={{ fontSize: "24px" }}>{ad.emoji}</div>
+              <div>
+                <div style={{ fontSize: "13px", fontWeight: "600" }}>{ad.business_name}</div>
+                <div style={{ fontSize: "11px", color: "#8a8a8a" }}>{ad.description}</div>
+                <div style={{ fontSize: "11px", color: "#4a8c5c", fontWeight: "500" }}>{ad.location_name}</div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       <div style={{ position: "relative" }}>
@@ -128,15 +139,28 @@ export default function Home() {
       </div>
 
       <div style={{ padding: "20px 24px", maxWidth: "1100px", margin: "0 auto" }}>
-        <div style={{ borderRadius: "14px", background: "linear-gradient(135deg, #1a3a2a, #4a8c5c)", padding: "28px 32px", marginBottom: "32px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
-          <div>
-            <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "8px" }}>Promoted Business</div>
-            <h2 style={{ fontFamily: "Georgia, serif", fontSize: "24px", color: "#fff", marginBottom: "6px" }}>Albany Farmers Market<br />this Saturday</h2>
-            <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.75)", marginBottom: "16px" }}>Fresh local produce, artisan bread, and live music — 8am to 1pm</p>
-            <button style={{ background: "#fff", color: "#1a3a2a", border: "none", borderRadius: "100px", padding: "10px 22px", fontWeight: "700", fontSize: "14px", cursor: "pointer" }}>Get directions →</button>
+        {/* FEATURED AD - 실제 데이터 or 기본 배너 */}
+        {featuredAd ? (
+          <div onClick={() => router.push('/advertiser')} style={{ borderRadius: "14px", background: "linear-gradient(135deg, #1a3a2a, #4a8c5c)", padding: "28px 32px", marginBottom: "32px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
+            <div>
+              <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "8px" }}>Promoted Business</div>
+              <h2 style={{ fontFamily: "Georgia, serif", fontSize: "24px", color: "#fff", marginBottom: "6px" }}>{featuredAd.business_name}</h2>
+              <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.75)", marginBottom: "16px" }}>{featuredAd.description}</p>
+              <button style={{ background: "#fff", color: "#1a3a2a", border: "none", borderRadius: "100px", padding: "10px 22px", fontWeight: "700", fontSize: "14px", cursor: "pointer" }}>Learn more →</button>
+            </div>
+            <div style={{ fontSize: "64px" }}>{featuredAd.emoji}</div>
           </div>
-          <div style={{ fontSize: "64px" }}>🥦</div>
-        </div>
+        ) : (
+          <div onClick={() => router.push('/advertiser')} style={{ borderRadius: "14px", background: "linear-gradient(135deg, #1a3a2a, #4a8c5c)", padding: "28px 32px", marginBottom: "32px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
+            <div>
+              <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "8px" }}>Advertise here</div>
+              <h2 style={{ fontFamily: "Georgia, serif", fontSize: "24px", color: "#fff", marginBottom: "6px" }}>Reach thousands of locals</h2>
+              <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.75)", marginBottom: "16px" }}>Promote your business to people near you. From NZ$49/mo.</p>
+              <button style={{ background: "#fff", color: "#1a3a2a", border: "none", borderRadius: "100px", padding: "10px 22px", fontWeight: "700", fontSize: "14px", cursor: "pointer" }}>Get started →</button>
+            </div>
+            <div style={{ fontSize: "64px" }}>📣</div>
+          </div>
+        )}
 
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "14px" }}>
           <div style={{ fontFamily: "Georgia, serif", fontSize: "20px" }}>Near you</div>
