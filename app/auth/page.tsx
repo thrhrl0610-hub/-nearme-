@@ -55,8 +55,15 @@ export default function AuthPage() {
 
   return (
     <main style={{ minHeight: '100vh', display: 'flex', fontFamily: "'DM Sans', sans-serif" }}>
-      {/* LEFT PANEL */}
-      <div style={{ width: '44%', background: '#1a3a2a', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '48px 52px', flexShrink: 0 }}>
+      {/* LEFT PANEL - 데스크탑만 표시 */}
+      <style>{`
+        @media (max-width: 768px) {
+          .auth-left { display: none !important; }
+          .auth-right { padding: 32px 24px !important; }
+        }
+      `}</style>
+
+      <div className="auth-left" style={{ width: '44%', background: '#1a3a2a', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '48px 52px', flexShrink: 0 }}>
         <div style={{ fontFamily: 'Georgia, serif', fontSize: '28px', color: '#fff' }}>
           near<span style={{ color: '#7dcf9a', fontStyle: 'italic' }}>me</span>
         </div>
@@ -79,8 +86,13 @@ export default function AuthPage() {
       </div>
 
       {/* RIGHT PANEL */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 40px', background: '#faf8f4' }}>
+      <div className="auth-right" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 40px', background: '#faf8f4' }}>
         <div style={{ width: '100%', maxWidth: '420px' }}>
+
+          {/* 모바일에서 로고 표시 */}
+          <div style={{ fontFamily: 'Georgia, serif', fontSize: '24px', color: '#1a3a2a', marginBottom: '24px', textAlign: 'center' }}>
+            near<span style={{ color: '#4a8c5c', fontStyle: 'italic' }}>me</span>
+          </div>
 
           <div style={{ display: 'flex', background: '#e8e4de', borderRadius: '100px', padding: '4px', marginBottom: '32px', gap: '4px' }}>
             {[['user', "🏠 I'm a local"], ['biz', "📣 I'm a business"]].map(([m, label]) => (
