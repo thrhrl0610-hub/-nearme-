@@ -6,11 +6,26 @@ import { supabase } from '../../lib/supabase'
 export default function AdvertiserDashboard() {
   const router = useRouter()
   const [success, setSuccess] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) router.push('/auth')
+      if (!user) {
+        router.push('/auth')
+        return
+      }
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_business')
+        .eq('id', user.id)
+        .single()
+
+      if (!profile?.is_business) {
+        router.push('/')
+        return
+      }
+      setLoading(false)
     }
     checkUser()
     if (window.location.search.includes('success=true')) setSuccess(true)
@@ -25,6 +40,12 @@ export default function AdvertiserDashboard() {
     const { url } = await res.json()
     window.location.href = url
   }
+
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', fontFamily: "'DM Sans', sans-serif" }}>
+      <div style={{ color: '#8a8a8a' }}>Loading...</div>
+    </div>
+  )
 
   return (
     <div style={{display: 'flex', minHeight: '100vh', fontFamily: "'DM Sans', sans-serif", background: '#faf8f4'}}>
@@ -51,11 +72,11 @@ export default function AdvertiserDashboard() {
           ))}
         </nav>
         <div style={{padding: '16px 12px', borderTop: '1px solid rgba(255,255,255,0.1)'}}>
-          <div style={{display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px'}}>
-            <div style={{width: '34px', height: '34px', borderRadius: '8px', background: '#7dcf9a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px'}}>🍜</div>
+          <div style={{display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', cursor: 'pointer'}} onClick={() => router.push('/')}>
+            <div style={{width: '34px', height: '34px', borderRadius: '8px', background: '#7dcf9a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px'}}>🏠</div>
             <div>
-              <div style={{fontSize: '13px', color: '#fff', fontWeight: '500'}}>Pho Silverdale</div>
-              <div style={{fontSize: '11px', color: 'rgba(255,255,255,0.45)'}}>Growth Plan · Active</div>
+              <div style={{fontSize: '13px', color: '#fff', fontWeight: '500'}}>Back to app</div>
+              <div style={{fontSize: '11px', color: 'rgba(255,255,255,0.45)'}}>nearme home</div>
             </div>
           </div>
         </div>
@@ -110,7 +131,7 @@ export default function AdvertiserDashboard() {
                 <div style={{fontSize: '13px', fontWeight: '600', color: '#8a8a8a', marginBottom: '8px', textTransform: 'uppercase'}}>{plan.name}</div>
                 <div style={{fontFamily: 'Georgia, serif', fontSize: '30px', marginBottom: '4px'}}>{plan.price} <span style={{fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: '#8a8a8a'}}>/mo</span></div>
                 <div style={{fontSize: '13px', color: '#8a8a8a', marginBottom: '14px'}}>{plan.desc}</div>
-                <ul style={{listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '6px'}}>
+                <ul style={{listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px'}}>
                   {plan.features.map(f => (
                     <li key={f} style={{fontSize: '13px', color: '#4a4a4a', display: 'flex', alignItems: 'center', gap: '7px'}}>
                       <span style={{color: '#4a8c5c', fontWeight: '700'}}>✓</span>{f}
