@@ -7,24 +7,34 @@ export default function AdvertiserDashboard() {
   const router = useRouter()
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'create'>('dashboard')
+  const [myAds, setMyAds] = useState<any[]>([])
+  const [user, setUser] = useState<any>(null)
+
+  // Create Ad form
+  const [bizName, setBizName] = useState('')
+  const [description, setDescription] = useState('')
+  const [category, setCategory] = useState('Food')
+  const [locationName, setLocationName] = useState('')
+  const [emoji, setEmoji] = useState('🏪')
+  const [saving, setSaving] = useState(false)
+  const [saveMsg, setSaveMsg] = useState('')
 
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/auth')
-        return
-      }
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_business')
-        .eq('id', user.id)
-        .single()
+      if (!user) { router.push('/auth'); return }
+      setUser(user)
 
-      if (!profile?.is_business) {
-        router.push('/')
-        return
-      }
+      const { data: profile } = await supabase.from('profiles').select('is_business, business_name, suburb').eq('id', user.id).single()
+      if (!profile?.is_business) { router.push('/'); return }
+
+      if (profile.business_name) setBizName(profile.business_name)
+      if (profile.suburb) setLocationName(profile.suburb)
+
+      const { data: adsData } = await supabase.from('ads').select('*').eq('user_id', user.id)
+      if (adsData) setMyAds(adsData)
+
       setLoading(false)
     }
     checkUser()
@@ -41,118 +51,257 @@ export default function AdvertiserDashboard() {
     window.location.href = url
   }
 
+  const handleCreateAd = async () => {
+    if (!bizName || !description || !locationName) { setSaveMsg('Please fill in all fields'); return }
+    setSaving(true)
+    setSaveMsg('')
+
+    if (myAds.length > 0) {
+      const { error } = await supabase.from('ads').update({
+        business_name: bizName,
+        description,
+        category,
+        location_name: locationName,
+        emoji,
+        user_id: user.id,
+        is_active: true,
+      }).eq('user_id', user.id)
+      if (!error) setSaveMsg('Ad updated! ✅')
+      else setSaveMsg('Error: ' + error.message)
+    } else {
+      const { error } = await supabase.from('ads').insert({
+        business_name: bizName,
+        description,
+        category,
+        location_name: locationName,
+        emoji,
+        user_id: user.id,
+        is_active: true,
+        radius_km: 10,
+      })
+      if (!error) {
+        setSaveMsg('Ad created! ✅')
+        const { data: adsData } = await supabase.from('ads').select('*').eq('user_id', user.id)
+        if (adsData) setMyAds(adsData)
+      } else {
+        setSaveMsg('Error: ' + error.message)
+      }
+    }
+    setSaving(false)
+  }
+
+  const handleDeleteAd = async (adId: string) => {
+    if (!confirm('Delete this ad?')) return
+    await supabase.from('ads').delete().eq('id', adId)
+    setMyAds(myAds.filter(a => a.id !== adId))
+  }
+
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', fontFamily: "'DM Sans', sans-serif" }}>
       <div style={{ color: '#8a8a8a' }}>Loading...</div>
     </div>
   )
 
+  const sidebarItems = [
+    { label: 'Dashboard', emoji: '📊', tab: 'dashboard' },
+    { label: 'Create Ad', emoji: '➕', tab: 'create' },
+  ]
+
   return (
-    <div style={{display: 'flex', minHeight: '100vh', fontFamily: "'DM Sans', sans-serif", background: '#faf8f4'}}>
+    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: "'DM Sans', sans-serif", background: '#faf8f4' }}>
       {/* SIDEBAR */}
-      <aside style={{width: '240px', background: '#1a3a2a', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, bottom: 0}}>
-        <div style={{padding: '28px 24px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)'}}>
-          <div style={{fontFamily: 'Georgia, serif', fontSize: '22px', color: '#fff'}}>
-            near<span style={{color: '#7dcf9a', fontStyle: 'italic'}}>me</span>
+      <aside style={{ width: '240px', background: '#1a3a2a', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, bottom: 0 }}>
+        <div style={{ padding: '28px 24px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+          <div style={{ fontFamily: 'Georgia, serif', fontSize: '22px', color: '#fff' }}>
+            near<span style={{ color: '#7dcf9a', fontStyle: 'italic' }}>me</span>
           </div>
-          <div style={{fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px', textTransform: 'uppercase', letterSpacing: '0.06em'}}>Business Dashboard</div>
+          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Business Dashboard</div>
         </div>
-        <nav style={{padding: '16px 12px', flex: 1}}>
-          {[
-            {label: 'Dashboard', emoji: '📊'},
-            {label: 'Analytics', emoji: '📈'},
-            {label: 'Campaigns', emoji: '⚡'},
-            {label: 'Create Ad', emoji: '➕'},
-            {label: 'Billing', emoji: '💳'},
-            {label: 'Settings', emoji: '⚙️'},
-          ].map((item) => (
-            <div key={item.label} style={{display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '8px', color: 'rgba(255,255,255,0.65)', fontSize: '14px', cursor: 'pointer', marginBottom: '2px'}}>
+        <nav style={{ padding: '16px 12px', flex: 1 }}>
+          {sidebarItems.map((item) => (
+            <div key={item.label} onClick={() => setActiveTab(item.tab as any)} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '8px', color: activeTab === item.tab ? '#fff' : 'rgba(255,255,255,0.65)', fontSize: '14px', cursor: 'pointer', marginBottom: '2px', background: activeTab === item.tab ? 'rgba(255,255,255,0.1)' : 'transparent' }}>
               <span>{item.emoji}</span>{item.label}
             </div>
           ))}
         </nav>
-        <div style={{padding: '16px 12px', borderTop: '1px solid rgba(255,255,255,0.1)'}}>
-          <div style={{display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', cursor: 'pointer'}} onClick={() => router.push('/')}>
-            <div style={{width: '34px', height: '34px', borderRadius: '8px', background: '#7dcf9a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px'}}>🏠</div>
+        <div style={{ padding: '16px 12px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', cursor: 'pointer' }} onClick={() => router.push('/')}>
+            <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#7dcf9a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>🏠</div>
             <div>
-              <div style={{fontSize: '13px', color: '#fff', fontWeight: '500'}}>Back to app</div>
-              <div style={{fontSize: '11px', color: 'rgba(255,255,255,0.45)'}}>nearme home</div>
+              <div style={{ fontSize: '13px', color: '#fff', fontWeight: '500' }}>Back to app</div>
+              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)' }}>nearme home</div>
             </div>
           </div>
         </div>
       </aside>
 
       {/* MAIN */}
-      <div style={{marginLeft: '240px', flex: 1}}>
-        <div style={{background: '#fff', borderBottom: '1px solid #e8e4de', padding: '0 32px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10}}>
-          <div style={{fontFamily: 'Georgia, serif', fontSize: '20px'}}>Dashboard</div>
-          <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-            <span style={{background: '#eaf5ec', color: '#2d7a3a', fontSize: '12px', fontWeight: '600', padding: '4px 10px', borderRadius: '100px'}}>● Live — 1 campaign running</span>
-            <button style={{background: '#e85d2f', color: '#fff', border: 'none', borderRadius: '100px', padding: '9px 20px', fontWeight: '600', fontSize: '13px', cursor: 'pointer'}}>+ New Campaign</button>
-          </div>
+      <div style={{ marginLeft: '240px', flex: 1 }}>
+        <div style={{ background: '#fff', borderBottom: '1px solid #e8e4de', padding: '0 32px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
+          <div style={{ fontFamily: 'Georgia, serif', fontSize: '20px' }}>{activeTab === 'dashboard' ? 'Dashboard' : 'Create Ad'}</div>
+          {myAds.length > 0 && (
+            <span style={{ background: '#eaf5ec', color: '#2d7a3a', fontSize: '12px', fontWeight: '600', padding: '4px 10px', borderRadius: '100px' }}>● {myAds.length} ad{myAds.length !== 1 ? 's' : ''} live</span>
+          )}
         </div>
 
-        <div style={{padding: '28px 32px 60px'}}>
+        <div style={{ padding: '28px 32px 60px' }}>
           {success && (
-            <div style={{background: '#eaf5ec', border: '1px solid #b7e4c7', borderRadius: '12px', padding: '16px 20px', marginBottom: '24px', fontSize: '14px', color: '#2d7a3a', fontWeight: '600'}}>
+            <div style={{ background: '#eaf5ec', border: '1px solid #b7e4c7', borderRadius: '12px', padding: '16px 20px', marginBottom: '24px', fontSize: '14px', color: '#2d7a3a', fontWeight: '600' }}>
               🎉 Payment successful! Your plan is now active.
             </div>
           )}
 
-          {/* STATS */}
-          <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '28px'}}>
-            {[
-              {label: 'Reach this week', value: '4,280', sub: '↑ 18% vs last week', up: true},
-              {label: 'Clicks', value: '347', sub: '↑ 8.1% CTR', up: true},
-              {label: 'Ad spend (NZD)', value: '$49', sub: '$199/mo plan', up: false},
-              {label: 'Cost per click', value: '$0.14', sub: 'vs Meta avg $1.80', up: true},
-            ].map((stat) => (
-              <div key={stat.label} style={{background: '#fff', border: '1px solid #e8e4de', borderRadius: '14px', padding: '20px 22px'}}>
-                <div style={{fontSize: '12px', color: '#8a8a8a', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em'}}>{stat.label}</div>
-                <div style={{fontFamily: 'Georgia, serif', fontSize: '28px', marginBottom: '4px'}}>{stat.value}</div>
-                <div style={{fontSize: '12px', color: stat.up ? '#2d7a3a' : '#8a8a8a'}}>{stat.sub}</div>
+          {/* DASHBOARD TAB */}
+          {activeTab === 'dashboard' && (
+            <>
+              {/* STATS */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '28px' }}>
+                {[
+                  { label: 'Reach this week', value: '4,280', sub: '↑ 18% vs last week', up: true },
+                  { label: 'Clicks', value: '347', sub: '↑ 8.1% CTR', up: true },
+                  { label: 'Ad spend (NZD)', value: '$49', sub: '$199/mo plan', up: false },
+                  { label: 'Cost per click', value: '$0.14', sub: 'vs Meta avg $1.80', up: true },
+                ].map((stat) => (
+                  <div key={stat.label} style={{ background: '#fff', border: '1px solid #e8e4de', borderRadius: '14px', padding: '20px 22px' }}>
+                    <div style={{ fontSize: '12px', color: '#8a8a8a', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{stat.label}</div>
+                    <div style={{ fontFamily: 'Georgia, serif', fontSize: '28px', marginBottom: '4px' }}>{stat.value}</div>
+                    <div style={{ fontSize: '12px', color: stat.up ? '#2d7a3a' : '#8a8a8a' }}>{stat.sub}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          {/* PLANS */}
-          <div style={{marginBottom: '16px'}}>
-            <div style={{fontFamily: 'Georgia, serif', fontSize: '20px', marginBottom: '4px'}}>Ad plans</div>
-            <div style={{fontSize: '14px', color: '#8a8a8a'}}>Simple, local pricing — no algorithm tax.</div>
-          </div>
-          <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '24px'}}>
-            {[
-              {name: 'Starter', price: '$49', desc: 'Perfect for testing the waters', features: ['Sponsored Strip slot', 'Up to 5 km radius', '~1,200 local users/mo', 'Basic analytics'], popular: false},
-              {name: 'Growth', price: '$199', desc: 'For businesses ready to grow', features: ['Strip + Feed Ad placements', 'Up to 20 km radius', '~8,000 local users/mo', 'Full analytics + CTR', 'Priority placement'], popular: true},
-              {name: 'Premier', price: '$499', desc: 'Maximum local visibility', features: ['All placements incl. Banner', 'Up to 50 km radius', '~25,000 local users/mo', 'Advanced analytics', 'Dedicated support'], popular: false},
-            ].map((plan) => (
-              <div key={plan.name} style={{background: '#fff', border: `1.5px solid ${plan.popular ? '#1a3a2a' : '#e8e4de'}`, borderRadius: '14px', padding: '22px 20px', position: 'relative'}}>
-                {plan.popular && <div style={{position: 'absolute', top: '-1px', left: '50%', transform: 'translateX(-50%)', background: '#1a3a2a', color: '#fff', fontSize: '10px', fontWeight: '700', padding: '3px 12px', borderRadius: '0 0 8px 8px'}}>Most popular</div>}
-                <div style={{fontSize: '13px', fontWeight: '600', color: '#8a8a8a', marginBottom: '8px', textTransform: 'uppercase'}}>{plan.name}</div>
-                <div style={{fontFamily: 'Georgia, serif', fontSize: '30px', marginBottom: '4px'}}>{plan.price} <span style={{fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: '#8a8a8a'}}>/mo</span></div>
-                <div style={{fontSize: '13px', color: '#8a8a8a', marginBottom: '14px'}}>{plan.desc}</div>
-                <ul style={{listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px'}}>
-                  {plan.features.map(f => (
-                    <li key={f} style={{fontSize: '13px', color: '#4a4a4a', display: 'flex', alignItems: 'center', gap: '7px'}}>
-                      <span style={{color: '#4a8c5c', fontWeight: '700'}}>✓</span>{f}
-                    </li>
+              {/* MY ADS */}
+              {myAds.length > 0 && (
+                <div style={{ marginBottom: '28px' }}>
+                  <div style={{ fontFamily: 'Georgia, serif', fontSize: '20px', marginBottom: '16px' }}>My Ads</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {myAds.map((ad) => (
+                      <div key={ad.id} style={{ background: '#fff', border: '1px solid #e8e4de', borderRadius: '14px', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <div style={{ fontSize: '36px' }}>{ad.emoji}</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '15px', fontWeight: '600', marginBottom: '4px' }}>{ad.business_name}</div>
+                          <div style={{ fontSize: '13px', color: '#8a8a8a', marginBottom: '4px' }}>{ad.description}</div>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <span style={{ fontSize: '12px', background: '#e8f5e8', color: '#2d7a2d', padding: '2px 8px', borderRadius: '100px' }}>{ad.category}</span>
+                            <span style={{ fontSize: '12px', background: '#e8f4f0', color: '#1a3a2a', padding: '2px 8px', borderRadius: '100px' }}>📍 {ad.location_name}</span>
+                            <span style={{ fontSize: '12px', background: ad.is_active ? '#e8f5e8' : '#fde8e8', color: ad.is_active ? '#2d7a2d' : '#c0392b', padding: '2px 8px', borderRadius: '100px' }}>{ad.is_active ? '● Live' : '○ Paused'}</span>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button onClick={() => setActiveTab('create')} style={{ background: '#fdf6e8', color: '#c8952a', border: 'none', borderRadius: '8px', padding: '8px 14px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Edit</button>
+                          <button onClick={() => handleDeleteAd(ad.id)} style={{ background: '#fde8e8', color: '#c0392b', border: 'none', borderRadius: '8px', padding: '8px 14px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Delete</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {myAds.length === 0 && (
+                <div style={{ background: '#fff', border: '1.5px dashed #e8e4de', borderRadius: '14px', padding: '40px', textAlign: 'center', marginBottom: '28px' }}>
+                  <div style={{ fontSize: '40px', marginBottom: '12px' }}>📣</div>
+                  <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px' }}>No ads yet</div>
+                  <div style={{ fontSize: '14px', color: '#8a8a8a', marginBottom: '16px' }}>Create your first ad to start reaching locals!</div>
+                  <button onClick={() => setActiveTab('create')} style={{ background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '10px 24px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Create Ad →</button>
+                </div>
+              )}
+
+              {/* PLANS */}
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ fontFamily: 'Georgia, serif', fontSize: '20px', marginBottom: '4px' }}>Ad plans</div>
+                <div style={{ fontSize: '14px', color: '#8a8a8a' }}>Simple, local pricing — no algorithm tax.</div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '24px' }}>
+                {[
+                  { name: 'Starter', price: '$49', desc: 'Perfect for testing the waters', features: ['Sponsored Strip slot', 'Up to 5 km radius', '~1,200 local users/mo', 'Basic analytics'], popular: false },
+                  { name: 'Growth', price: '$199', desc: 'For businesses ready to grow', features: ['Strip + Feed Ad placements', 'Up to 20 km radius', '~8,000 local users/mo', 'Full analytics + CTR', 'Priority placement'], popular: true },
+                  { name: 'Premier', price: '$499', desc: 'Maximum local visibility', features: ['All placements incl. Banner', 'Up to 50 km radius', '~25,000 local users/mo', 'Advanced analytics', 'Dedicated support'], popular: false },
+                ].map((plan) => (
+                  <div key={plan.name} style={{ background: '#fff', border: `1.5px solid ${plan.popular ? '#1a3a2a' : '#e8e4de'}`, borderRadius: '14px', padding: '22px 20px', position: 'relative' }}>
+                    {plan.popular && <div style={{ position: 'absolute', top: '-1px', left: '50%', transform: 'translateX(-50%)', background: '#1a3a2a', color: '#fff', fontSize: '10px', fontWeight: '700', padding: '3px 12px', borderRadius: '0 0 8px 8px' }}>Most popular</div>}
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#8a8a8a', marginBottom: '8px', textTransform: 'uppercase' }}>{plan.name}</div>
+                    <div style={{ fontFamily: 'Georgia, serif', fontSize: '30px', marginBottom: '4px' }}>{plan.price} <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: '#8a8a8a' }}>/mo</span></div>
+                    <div style={{ fontSize: '13px', color: '#8a8a8a', marginBottom: '14px' }}>{plan.desc}</div>
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {plan.features.map(f => (
+                        <li key={f} style={{ fontSize: '13px', color: '#4a4a4a', display: 'flex', alignItems: 'center', gap: '7px' }}>
+                          <span style={{ color: '#4a8c5c', fontWeight: '700' }}>✓</span>{f}
+                        </li>
+                      ))}
+                    </ul>
+                    <button onClick={() => handlePlanClick(plan.name)} style={{ width: '100%', marginTop: '18px', borderRadius: '100px', padding: '10px', fontWeight: '600', fontSize: '14px', cursor: 'pointer', border: plan.popular ? 'none' : '1.5px solid #e8e4de', background: plan.popular ? '#1a3a2a' : 'transparent', color: plan.popular ? '#fff' : '#1a1a1a' }}>
+                      {plan.popular ? 'Subscribe now' : 'Get started'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* CREATE AD TAB */}
+          {activeTab === 'create' && (
+            <div style={{ maxWidth: '560px' }}>
+              <div style={{ fontFamily: 'Georgia, serif', fontSize: '20px', marginBottom: '6px' }}>
+                {myAds.length > 0 ? 'Edit your ad' : 'Create your ad'}
+              </div>
+              <div style={{ fontSize: '14px', color: '#8a8a8a', marginBottom: '28px' }}>
+                This is what locals will see in the Sponsored strip and feed.
+              </div>
+
+              {/* PREVIEW */}
+              <div style={{ background: '#fdf6e8', border: '1px solid #f0e4c0', borderRadius: '12px', padding: '14px 16px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ fontSize: '32px' }}>{emoji || '🏪'}</div>
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: '600' }}>{bizName || 'Your Business Name'}</div>
+                  <div style={{ fontSize: '11px', color: '#8a8a8a' }}>{description || 'Your tagline here'}</div>
+                  <div style={{ fontSize: '11px', color: '#4a8c5c', fontWeight: '500' }}>{locationName || 'Your suburb'}</div>
+                </div>
+                <div style={{ marginLeft: 'auto', fontSize: '10px', color: '#c8952a', fontWeight: '600', textTransform: 'uppercase' }}>Preview</div>
+              </div>
+
+              {/* EMOJI PICKER */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a', display: 'block', marginBottom: '8px' }}>Pick an emoji for your business</label>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {['🏪', '🍜', '🍕', '☕', '🏠', '💆', '🛒', '💇', '🏋️', '🐾', '🌿', '🔧', '📚', '🎨', '🧁', '🍣'].map((e) => (
+                    <button key={e} onClick={() => setEmoji(e)} style={{ fontSize: '24px', width: '44px', height: '44px', borderRadius: '8px', border: emoji === e ? '2px solid #1a3a2a' : '1.5px solid #e8e4de', background: emoji === e ? '#e8f4f0' : '#fff', cursor: 'pointer' }}>{e}</button>
                   ))}
-                </ul>
-                <button onClick={() => handlePlanClick(plan.name)} style={{width: '100%', marginTop: '18px', borderRadius: '100px', padding: '10px', fontWeight: '600', fontSize: '14px', cursor: 'pointer', border: plan.popular ? 'none' : '1.5px solid #e8e4de', background: plan.popular ? '#1a3a2a' : 'transparent', color: plan.popular ? '#fff' : '#1a1a1a'}}>
-                  {plan.popular ? 'Subscribe now' : 'Get started'}
-                </button>
+                </div>
               </div>
-            ))}
-          </div>
 
-          {/* CTA */}
-          <div style={{background: 'linear-gradient(135deg, #1a3a2a, #4a8c5c)', borderRadius: '14px', padding: '28px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-            <div>
-              <div style={{fontFamily: 'Georgia, serif', fontSize: '22px', color: '#fff', marginBottom: '8px'}}>Ready to reach more locals?</div>
-              <div style={{fontSize: '14px', color: 'rgba(255,255,255,0.75)'}}>Start your first campaign today. Cancel anytime.</div>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>Business name</label>
+                <input value={bizName} onChange={e => setBizName(e.target.value)} placeholder="e.g. Pho Silverdale" style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>Tagline / description</label>
+                <input value={description} onChange={e => setDescription(e.target.value)} placeholder="e.g. Lunch special $14.90" style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>Category</label>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {['Food', 'Retail', 'Wellness', 'Real Estate', 'Services', 'Other'].map((cat) => (
+                    <button key={cat} onClick={() => setCategory(cat)} style={{ border: category === cat ? 'none' : '1.5px solid #e8e4de', borderRadius: '100px', padding: '6px 14px', fontSize: '13px', background: category === cat ? '#1a3a2a' : '#fff', color: category === cat ? '#fff' : '#4a4a4a', cursor: 'pointer' }}>{cat}</button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '28px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>Suburb / location</label>
+                <input value={locationName} onChange={e => setLocationName(e.target.value)} placeholder="e.g. Silverdale" style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+
+              {saveMsg && (
+                <div style={{ marginBottom: '16px', padding: '10px 14px', background: saveMsg.includes('Error') ? '#fde8e8' : '#e8f5e8', borderRadius: '8px', fontSize: '13px', color: saveMsg.includes('Error') ? '#c0392b' : '#2d7a2d' }}>{saveMsg}</div>
+              )}
+
+              <button onClick={handleCreateAd} disabled={saving} style={{ width: '100%', background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '13px', fontSize: '15px', fontWeight: '600', cursor: 'pointer' }}>
+                {saving ? 'Saving...' : myAds.length > 0 ? 'Update ad' : 'Create ad'}
+              </button>
             </div>
-            <button onClick={() => handlePlanClick('Starter')} style={{background: '#fff', color: '#1a3a2a', border: 'none', borderRadius: '100px', padding: '12px 24px', fontWeight: '700', fontSize: '14px', cursor: 'pointer'}}>Get started →</button>
-          </div>
+          )}
         </div>
       </div>
     </div>
