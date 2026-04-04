@@ -7,6 +7,8 @@ export default function ProfilePage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [listings, setListings] = useState<any[]>([])
+  const [savedListings, setSavedListings] = useState<any[]>([])
+  const [activeTab, setActiveTab] = useState<'my' | 'saved'>('my')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -14,8 +16,13 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/auth'); return }
       setUser(user)
+
       const { data, error } = await supabase.from('listings').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
       if (!error && data) setListings(data)
+
+      const { data: savesData } = await supabase.from('saves').select('*, listings(*)').eq('user_id', user.id).order('created_at', { ascending: false })
+      if (savesData) setSavedListings(savesData.map((s: any) => s.listings).filter(Boolean))
+
       setLoading(false)
     }
     fetchData()
@@ -44,6 +51,7 @@ export default function ProfilePage() {
       </nav>
 
       <div style={{ maxWidth: '680px', margin: '0 auto', padding: '24px' }}>
+        {/* PROFILE CARD */}
         <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '24px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#1a3a2a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', color: '#fff', fontWeight: '700' }}>
             {user?.email?.[0].toUpperCase()}
@@ -55,33 +63,70 @@ export default function ProfilePage() {
           <button onClick={() => router.push('/post')} style={{ background: '#e85d2f', color: '#fff', border: 'none', borderRadius: '100px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>+ Post</button>
         </div>
 
-        <div style={{ fontFamily: 'Georgia, serif', fontSize: '20px', marginBottom: '16px' }}>My listings</div>
+        {/* TABS */}
+        <div style={{ display: 'flex', background: '#e8e4de', borderRadius: '100px', padding: '4px', marginBottom: '20px', gap: '4px' }}>
+          <button onClick={() => setActiveTab('my')} style={{ flex: 1, border: 'none', borderRadius: '100px', padding: '10px', fontSize: '14px', fontWeight: '500', cursor: 'pointer', background: activeTab === 'my' ? '#fff' : 'transparent', color: activeTab === 'my' ? '#1a1a1a' : '#8a8a8a' }}>
+            My listings ({listings.length})
+          </button>
+          <button onClick={() => setActiveTab('saved')} style={{ flex: 1, border: 'none', borderRadius: '100px', padding: '10px', fontSize: '14px', fontWeight: '500', cursor: 'pointer', background: activeTab === 'saved' ? '#fff' : 'transparent', color: activeTab === 'saved' ? '#1a1a1a' : '#8a8a8a' }}>
+            Saved ({savedListings.length})
+          </button>
+        </div>
 
-        {listings.length === 0 ? (
-          <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '40px', textAlign: 'center', color: '#8a8a8a', fontSize: '14px' }}>
-            No listings yet.{' '}
-            <span onClick={() => router.push('/post')} style={{ color: '#4a8c5c', cursor: 'pointer', textDecoration: 'underline' }}>Post your first one →</span>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {listings.map((item) => (
-              <div key={item.id} style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8e4de', padding: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <div style={{ width: '56px', height: '56px', borderRadius: '10px', background: '#e8f4f0', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>
-                  {item.image_url ? <img src={item.image_url} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📦'}
+        {/* MY LISTINGS */}
+        {activeTab === 'my' && (
+          listings.length === 0 ? (
+            <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '40px', textAlign: 'center', color: '#8a8a8a', fontSize: '14px' }}>
+              No listings yet.{' '}
+              <span onClick={() => router.push('/post')} style={{ color: '#4a8c5c', cursor: 'pointer', textDecoration: 'underline' }}>Post your first one →</span>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {listings.map((item) => (
+                <div key={item.id} style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8e4de', padding: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{ width: '56px', height: '56px', borderRadius: '10px', background: '#e8f4f0', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>
+                    {item.image_url ? <img src={item.image_url} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📦'}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '3px' }}>{item.title}</div>
+                    <div style={{ fontSize: '13px', color: '#4a8c5c', fontWeight: '500' }}>{item.price === 0 ? 'Free' : `$${item.price}`}</div>
+                    <div style={{ fontSize: '12px', color: '#8a8a8a' }}>{new Date(item.created_at).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' })}</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button onClick={() => router.push(`/listings/${item.id}`)} style={{ background: '#e8f4f0', color: '#1a3a2a', border: 'none', borderRadius: '8px', padding: '8px 14px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>View</button>
+                    <button onClick={() => router.push(`/listings/edit?id=${item.id}`)} style={{ background: '#fdf6e8', color: '#c8952a', border: 'none', borderRadius: '8px', padding: '8px 14px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Edit</button>
+                    <button onClick={() => handleDelete(item.id)} style={{ background: '#fde8e8', color: '#c0392b', border: 'none', borderRadius: '8px', padding: '8px 14px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Delete</button>
+                  </div>
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '3px' }}>{item.title}</div>
-                  <div style={{ fontSize: '13px', color: '#4a8c5c', fontWeight: '500' }}>{item.price === 0 ? 'Free' : `$${item.price}`}</div>
-                  <div style={{ fontSize: '12px', color: '#8a8a8a' }}>{new Date(item.created_at).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' })}</div>
+              ))}
+            </div>
+          )
+        )}
+
+        {/* SAVED LISTINGS */}
+        {activeTab === 'saved' && (
+          savedListings.length === 0 ? (
+            <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '40px', textAlign: 'center', color: '#8a8a8a', fontSize: '14px' }}>
+              No saved listings yet.{' '}
+              <span onClick={() => router.push('/browse')} style={{ color: '#4a8c5c', cursor: 'pointer', textDecoration: 'underline' }}>Browse listings →</span>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {savedListings.map((item) => (
+                <div key={item.id} onClick={() => router.push(`/listings/${item.id}`)} style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8e4de', padding: '16px', display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer' }}>
+                  <div style={{ width: '56px', height: '56px', borderRadius: '10px', background: '#e8f4f0', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>
+                    {item.image_url ? <img src={item.image_url} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📦'}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '3px' }}>{item.title}</div>
+                    <div style={{ fontSize: '13px', color: '#4a8c5c', fontWeight: '500' }}>{item.price === 0 ? 'Free' : `$${item.price}`}</div>
+                    <div style={{ fontSize: '12px', color: '#8a8a8a' }}>{item.category}</div>
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#e85d2f' }}>❤️</div>
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button onClick={() => router.push(`/listings/${item.id}`)} style={{ background: '#e8f4f0', color: '#1a3a2a', border: 'none', borderRadius: '8px', padding: '8px 14px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>View</button>
-                  <button onClick={() => router.push(`/listings/edit?id=${item.id}`)} style={{ background: '#fdf6e8', color: '#c8952a', border: 'none', borderRadius: '8px', padding: '8px 14px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Edit</button>
-                  <button onClick={() => handleDelete(item.id)} style={{ background: '#fde8e8', color: '#c0392b', border: 'none', borderRadius: '8px', padding: '8px 14px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Delete</button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )
         )}
       </div>
 
