@@ -14,9 +14,11 @@ export default function Home() {
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
   const [suburb, setSuburb] = useState('Locating...')
   const [loading, setLoading] = useState(true)
+  const [currentUser, setCurrentUser] = useState<any>(null)
   const router = useRouter()
 
   useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setCurrentUser(data.user))
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude: lat, longitude: lng } = pos.coords
@@ -73,6 +75,18 @@ export default function Home() {
     fetchData()
   }, [activeCategory, search, radius, userLocation])
 
+  const handleAdClick = (adId: string) => {
+    router.push(`/business/${adId}`)
+  }
+
+  const handleAdvertiseClick = () => {
+    if (currentUser) {
+      router.push('/advertiser')
+    } else {
+      router.push('/auth')
+    }
+  }
+
   return (
     <main style={{ fontFamily: "'DM Sans', sans-serif", background: "#faf8f4", minHeight: "100vh", paddingBottom: "80px" }}>
       <nav style={{ background: "#1a3a2a", padding: "0 24px", height: "58px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -103,14 +117,14 @@ export default function Home() {
 
       {/* SPONSORED STRIP */}
       <div style={{ background: "#fdf6e8", borderBottom: "1px solid #f0e4c0", padding: "10px 24px", display: "flex", alignItems: "center", gap: "14px", overflowX: "auto" }}>
-        <div onClick={() => router.push('/advertiser')} style={{ fontSize: "10px", fontWeight: "600", color: "#c8952a", textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap", cursor: "pointer" }}>📣 Sponsored</div>
+        <div onClick={handleAdvertiseClick} style={{ fontSize: "10px", fontWeight: "600", color: "#c8952a", textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap", cursor: "pointer" }}>📣 Sponsored</div>
         {ads.length === 0 ? (
-          <div onClick={() => router.push('/advertiser')} style={{ display: "flex", alignItems: "center", gap: "10px", background: "#fff", border: "1px dashed #f0e4c0", borderRadius: "8px", padding: "8px 14px", flexShrink: 0, cursor: "pointer" }}>
+          <div onClick={handleAdvertiseClick} style={{ display: "flex", alignItems: "center", gap: "10px", background: "#fff", border: "1px dashed #f0e4c0", borderRadius: "8px", padding: "8px 14px", flexShrink: 0, cursor: "pointer" }}>
             <div style={{ fontSize: "13px", color: "#c8952a" }}>➕ Advertise your business here</div>
           </div>
         ) : (
           ads.map((ad) => (
-            <div key={ad.id} onClick={() => router.push('/advertiser')} style={{ display: "flex", alignItems: "center", gap: "10px", background: "#fff", border: "1px solid #f0e4c0", borderRadius: "8px", padding: "8px 14px", flexShrink: 0, cursor: "pointer" }}>
+            <div key={ad.id} onClick={() => handleAdClick(ad.id)} style={{ display: "flex", alignItems: "center", gap: "10px", background: "#fff", border: "1px solid #f0e4c0", borderRadius: "8px", padding: "8px 14px", flexShrink: 0, cursor: "pointer" }}>
               <div style={{ fontSize: "24px" }}>{ad.emoji}</div>
               <div>
                 <div style={{ fontSize: "13px", fontWeight: "600" }}>{ad.business_name}</div>
@@ -132,16 +146,20 @@ export default function Home() {
             { label: "🏘️ Real Estate", value: "Real Estate" },
             { label: "🛠️ Services", value: "Services" },
           ].map((cat) => (
-            <button key={cat.value} onClick={() => setActiveCategory(cat.value)} style={{ display: "flex", alignItems: "center", gap: "6px", border: activeCategory === cat.value ? "none" : "1.5px solid #e8e4de", borderRadius: "100px", padding: "7px 14px", fontSize: "13px", background: activeCategory === cat.value ? "#1a3a2a" : "#fff", color: activeCategory === cat.value ? "#fff" : "#4a4a4a", cursor: "pointer", whiteSpace: "nowrap" }}>{cat.label}</button>
+            <button key={cat.value} onClick={() => {
+              if (cat.value === 'Jobs') router.push('/browse?category=Jobs')
+              else if (cat.value === 'Events') router.push('/events')
+              else if (cat.value === 'Real Estate') router.push('/realestate')
+              else setActiveCategory(cat.value)
+            }} style={{ display: "flex", alignItems: "center", gap: "6px", border: activeCategory === cat.value ? "none" : "1.5px solid #e8e4de", borderRadius: "100px", padding: "7px 14px", fontSize: "13px", background: activeCategory === cat.value ? "#1a3a2a" : "#fff", color: activeCategory === cat.value ? "#fff" : "#4a4a4a", cursor: "pointer", whiteSpace: "nowrap" }}>{cat.label}</button>
           ))}
         </div>
         <div style={{ position: "absolute", right: 0, top: 0, height: "100%", width: "48px", background: "linear-gradient(to left, #faf8f4, transparent)", pointerEvents: "none" }} />
       </div>
 
       <div style={{ padding: "20px 24px", maxWidth: "1100px", margin: "0 auto" }}>
-        {/* FEATURED AD - 실제 데이터 or 기본 배너 */}
         {featuredAd ? (
-          <div onClick={() => router.push('/advertiser')} style={{ borderRadius: "14px", background: "linear-gradient(135deg, #1a3a2a, #4a8c5c)", padding: "28px 32px", marginBottom: "32px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
+          <div onClick={() => handleAdClick(featuredAd.id)} style={{ borderRadius: "14px", background: "linear-gradient(135deg, #1a3a2a, #4a8c5c)", padding: "28px 32px", marginBottom: "32px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
             <div>
               <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "8px" }}>Promoted Business</div>
               <h2 style={{ fontFamily: "Georgia, serif", fontSize: "24px", color: "#fff", marginBottom: "6px" }}>{featuredAd.business_name}</h2>
@@ -151,7 +169,7 @@ export default function Home() {
             <div style={{ fontSize: "64px" }}>{featuredAd.emoji}</div>
           </div>
         ) : (
-          <div onClick={() => router.push('/advertiser')} style={{ borderRadius: "14px", background: "linear-gradient(135deg, #1a3a2a, #4a8c5c)", padding: "28px 32px", marginBottom: "32px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
+          <div onClick={handleAdvertiseClick} style={{ borderRadius: "14px", background: "linear-gradient(135deg, #1a3a2a, #4a8c5c)", padding: "28px 32px", marginBottom: "32px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
             <div>
               <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "8px" }}>Advertise here</div>
               <h2 style={{ fontFamily: "Georgia, serif", fontSize: "24px", color: "#fff", marginBottom: "6px" }}>Reach thousands of locals</h2>
