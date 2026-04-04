@@ -9,7 +9,7 @@ export default function BottomNav() {
     { icon: "🏠", label: "Home", href: "/" },
     { icon: "🔍", label: "Browse", href: "/browse" },
     { icon: "➕", label: "Post", href: "/post" },
-    { icon: "💬", label: "Chat", href: "/messages" },
+    { icon: "🏘️", label: "Community", href: "/community" },
     { icon: "👤", label: "Profile", href: "/profile" },
   ]
 
