@@ -1,10 +1,12 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useSearchParams } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 
 export default function AdvertiserDashboard() {
   const router = useRouter()
+  const [success, setSuccess] = useState(false)
 
   useEffect(() => {
     const checkUser = async () => {
@@ -12,7 +14,18 @@ export default function AdvertiserDashboard() {
       if (!user) router.push('/auth')
     }
     checkUser()
+    if (window.location.search.includes('success=true')) setSuccess(true)
   }, [])
+
+  const handlePlanClick = async (planName: string) => {
+    const res = await fetch('/api/create-ad-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ planName })
+    })
+    const { url } = await res.json()
+    window.location.href = url
+  }
 
   return (
     <div style={{display: 'flex', minHeight: '100vh', fontFamily: "'DM Sans', sans-serif", background: '#faf8f4'}}>
@@ -51,7 +64,6 @@ export default function AdvertiserDashboard() {
 
       {/* MAIN */}
       <div style={{marginLeft: '240px', flex: 1}}>
-        {/* TOPBAR */}
         <div style={{background: '#fff', borderBottom: '1px solid #e8e4de', padding: '0 32px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10}}>
           <div style={{fontFamily: 'Georgia, serif', fontSize: '20px'}}>Dashboard</div>
           <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
@@ -61,6 +73,12 @@ export default function AdvertiserDashboard() {
         </div>
 
         <div style={{padding: '28px 32px 60px'}}>
+          {success && (
+            <div style={{background: '#eaf5ec', border: '1px solid #b7e4c7', borderRadius: '12px', padding: '16px 20px', marginBottom: '24px', fontSize: '14px', color: '#2d7a3a', fontWeight: '600'}}>
+              🎉 Payment successful! Your plan is now active.
+            </div>
+          )}
+
           {/* STATS */}
           <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '28px'}}>
             {[
@@ -100,8 +118,8 @@ export default function AdvertiserDashboard() {
                     </li>
                   ))}
                 </ul>
-                <button style={{width: '100%', marginTop: '18px', borderRadius: '100px', padding: '10px', fontWeight: '600', fontSize: '14px', cursor: 'pointer', border: plan.popular ? 'none' : '1.5px solid #e8e4de', background: plan.popular ? '#1a3a2a' : 'transparent', color: plan.popular ? '#fff' : '#1a1a1a'}}>
-                  {plan.popular ? 'Current plan ✓' : 'Get started'}
+                <button onClick={() => handlePlanClick(plan.name)} style={{width: '100%', marginTop: '18px', borderRadius: '100px', padding: '10px', fontWeight: '600', fontSize: '14px', cursor: 'pointer', border: plan.popular ? 'none' : '1.5px solid #e8e4de', background: plan.popular ? '#1a3a2a' : 'transparent', color: plan.popular ? '#fff' : '#1a1a1a'}}>
+                  {plan.popular ? 'Subscribe now' : 'Get started'}
                 </button>
               </div>
             ))}
@@ -113,7 +131,7 @@ export default function AdvertiserDashboard() {
               <div style={{fontFamily: 'Georgia, serif', fontSize: '22px', color: '#fff', marginBottom: '8px'}}>Ready to reach more locals?</div>
               <div style={{fontSize: '14px', color: 'rgba(255,255,255,0.75)'}}>Start your first campaign today. Cancel anytime.</div>
             </div>
-            <button onClick={() => router.push('/auth')} style={{background: '#fff', color: '#1a3a2a', border: 'none', borderRadius: '100px', padding: '12px 24px', fontWeight: '700', fontSize: '14px', cursor: 'pointer'}}>Get started →</button>
+            <button onClick={() => handlePlanClick('Starter')} style={{background: '#fff', color: '#1a3a2a', border: 'none', borderRadius: '100px', padding: '12px 24px', fontWeight: '700', fontSize: '14px', cursor: 'pointer'}}>Get started →</button>
           </div>
         </div>
       </div>
