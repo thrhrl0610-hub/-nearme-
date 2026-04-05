@@ -92,6 +92,13 @@ export default function Home() {
     else router.push('/auth')
   }
 
+  const AdIcon = ({ ad, size = 24 }: { ad: any, size?: number }) => {
+    if (ad.image_url) {
+      return <img src={ad.image_url} alt={ad.business_name} style={{ width: size, height: size, borderRadius: '6px', objectFit: 'cover' }} />
+    }
+    return <span style={{ fontSize: size }}>{ad.emoji}</span>
+  }
+
   return (
     <main style={{ fontFamily: "'DM Sans', sans-serif", background: "#faf8f4", minHeight: "100vh", paddingBottom: "80px" }}>
       <nav style={{ background: "#1a3a2a", padding: "0 24px", height: "58px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -130,7 +137,9 @@ export default function Home() {
         ) : (
           ads.map((ad) => (
             <div key={ad.id} onClick={() => handleAdClick(ad.id)} style={{ display: "flex", alignItems: "center", gap: "10px", background: "#fff", border: "1px solid #f0e4c0", borderRadius: "8px", padding: "8px 14px", flexShrink: 0, cursor: "pointer" }}>
-              <div style={{ fontSize: "24px" }}>{ad.emoji}</div>
+              <div style={{ width: "32px", height: "32px", borderRadius: "6px", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <AdIcon ad={ad} size={32} />
+              </div>
               <div>
                 <div style={{ fontSize: "13px", fontWeight: "600" }}>{ad.business_name}</div>
                 <div style={{ fontSize: "11px", color: "#8a8a8a" }}>{ad.description}</div>
@@ -174,7 +183,12 @@ export default function Home() {
               <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.75)", marginBottom: "16px" }}>{featuredAd.description}</p>
               <button style={{ background: "#fff", color: "#1a3a2a", border: "none", borderRadius: "100px", padding: "10px 22px", fontWeight: "700", fontSize: "14px", cursor: "pointer" }}>Learn more →</button>
             </div>
-            <div style={{ fontSize: "64px" }}>{featuredAd.emoji}</div>
+            <div style={{ width: "80px", height: "80px", borderRadius: "14px", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.15)", flexShrink: 0 }}>
+              {featuredAd.image_url
+                ? <img src={featuredAd.image_url} alt={featuredAd.business_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : <span style={{ fontSize: "48px" }}>{featuredAd.emoji}</span>
+              }
+            </div>
           </div>
         ) : (
           <div onClick={handleAdvertiseClick} style={{ borderRadius: "14px", background: "linear-gradient(135deg, #1a3a2a, #4a8c5c)", padding: "28px 32px", marginBottom: "32px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
