@@ -12,6 +12,8 @@ export default function ProfilePage() {
   const [savedListings, setSavedListings] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState<'my' | 'saved'>('my')
   const [loading, setLoading] = useState(true)
+  const [pushEnabled, setPushEnabled] = useState(false)
+  const [pushLoading, setPushLoading] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -28,10 +30,51 @@ export default function ProfilePage() {
       const { data: savesData } = await supabase.from('saves').select('*, listings(*)').eq('user_id', user.id).order('created_at', { ascending: false })
       if (savesData) setSavedListings(savesData.map((s: any) => s.listings).filter(Boolean))
 
+      // 푸시 이미 구독했는지 확인
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        const reg = await navigator.serviceWorker.ready
+        const sub = await reg.pushManager.getSubscription()
+        if (sub) setPushEnabled(true)
+      }
+
       setLoading(false)
     }
     fetchData()
   }, [])
+
+  const handlePushToggle = async () => {
+    setPushLoading(true)
+    try {
+      const reg = await navigator.serviceWorker.register('/sw.js')
+      await navigator.serviceWorker.ready
+
+      if (pushEnabled) {
+        const sub = await reg.pushManager.getSubscription()
+        if (sub) {
+          await sub.unsubscribe()
+          await supabase.from('push_subscriptions').delete().eq('user_id', user.id)
+          setPushEnabled(false)
+        }
+      } else {
+        const permission = await Notification.requestPermission()
+        if (permission !== 'granted') { setPushLoading(false); return }
+
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+        })
+
+        await supabase.from('push_subscriptions').upsert({
+          user_id: user.id,
+          subscription: sub.toJSON()
+        })
+        setPushEnabled(true)
+      }
+    } catch (err) {
+      console.error(err)
+    }
+    setPushLoading(false)
+  }
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -58,7 +101,7 @@ export default function ProfilePage() {
       <div style={{ maxWidth: '680px', margin: '0 auto', padding: '24px' }}>
         {/* PROFILE CARD */}
         <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '24px', marginBottom: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: profile?.is_verified ? '0' : '0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#1a3a2a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', color: '#fff', fontWeight: '700', flexShrink: 0 }}>
               {user?.email?.[0].toUpperCase()}
             </div>
@@ -66,9 +109,7 @@ export default function ProfilePage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                 <div style={{ fontSize: '16px', fontWeight: '600' }}>{profile?.full_name || user?.email}</div>
                 {profile?.is_verified && (
-                  <span style={{ background: '#e8f4f0', color: '#1a3a2a', fontSize: '11px', fontWeight: '700', padding: '2px 8px', borderRadius: '100px', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    ✅ Verified
-                  </span>
+                  <span style={{ background: '#e8f4f0', color: '#1a3a2a', fontSize: '11px', fontWeight: '700', padding: '2px 8px', borderRadius: '100px' }}>✅ Verified</span>
                 )}
               </div>
               <div style={{ fontSize: '13px', color: '#8a8a8a' }}>{listings.length} listing{listings.length !== 1 ? 's' : ''} posted</div>
@@ -79,9 +120,20 @@ export default function ProfilePage() {
             <button onClick={() => router.push('/post')} style={{ background: '#e85d2f', color: '#fff', border: 'none', borderRadius: '100px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>+ Post</button>
           </div>
 
+          {/* PUSH NOTIFICATIONS */}
+          <div style={{ marginTop: '16px', background: '#f5f5f5', borderRadius: '10px', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '2px' }}>🔔 Push notifications</div>
+              <div style={{ fontSize: '12px', color: '#8a8a8a' }}>{pushEnabled ? 'You will receive notifications' : 'Get notified about messages & activity'}</div>
+            </div>
+            <button onClick={handlePushToggle} disabled={pushLoading} style={{ background: pushEnabled ? '#fde8e8' : '#1a3a2a', color: pushEnabled ? '#c0392b' : '#fff', border: 'none', borderRadius: '100px', padding: '7px 14px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              {pushLoading ? '...' : pushEnabled ? 'Turn off' : 'Turn on'}
+            </button>
+          </div>
+
           {/* VERIFICATION BANNER */}
           {!profile?.is_verified && (
-            <div style={{ marginTop: '16px', background: '#fdf6e8', border: '1px solid #f0e4c0', borderRadius: '10px', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ marginTop: '12px', background: '#fdf6e8', border: '1px solid #f0e4c0', borderRadius: '10px', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '13px', fontWeight: '600', color: '#c8952a', marginBottom: '2px' }}>Get verified ✅</div>
                 <div style={{ fontSize: '12px', color: '#8a8a8a' }}>Verified users get more trust and visibility</div>
