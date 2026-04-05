@@ -16,6 +16,9 @@ export default function AdvertiserDashboard() {
   const [category, setCategory] = useState('Food')
   const [locationName, setLocationName] = useState('')
   const [emoji, setEmoji] = useState('🏪')
+  const [logoImage, setLogoImage] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [useImage, setUseImage] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState('')
 
@@ -32,7 +35,13 @@ export default function AdvertiserDashboard() {
       if (profile.suburb) setLocationName(profile.suburb)
 
       const { data: adsData } = await supabase.from('ads').select('*').eq('user_id', user.id)
-      if (adsData) setMyAds(adsData)
+      if (adsData) {
+        setMyAds(adsData)
+        if (adsData.length > 0 && adsData[0].image_url) {
+          setLogoPreview(adsData[0].image_url)
+          setUseImage(true)
+        }
+      }
 
       setLoading(false)
     }
@@ -50,23 +59,49 @@ export default function AdvertiserDashboard() {
     window.location.href = url
   }
 
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setLogoImage(file)
+      setLogoPreview(URL.createObjectURL(file))
+      setUseImage(true)
+    }
+  }
+
   const handleCreateAd = async () => {
     if (!bizName || !description || !locationName) { setSaveMsg('Please fill in all fields'); return }
     setSaving(true)
     setSaveMsg('')
 
+    let image_url = logoPreview && useImage && !logoImage ? logoPreview : null
+
+    if (logoImage && useImage) {
+      const fileExt = logoImage.name.split('.').pop()
+      const fileName = `ad-logo-${user.id}-${Date.now()}.${fileExt}`
+      const { error: uploadError } = await supabase.storage.from('listings').upload(fileName, logoImage)
+      if (!uploadError) {
+        const { data: urlData } = supabase.storage.from('listings').getPublicUrl(fileName)
+        image_url = urlData.publicUrl
+      }
+    }
+
+    const adData = {
+      business_name: bizName,
+      description,
+      category,
+      location_name: locationName,
+      emoji: useImage ? null : emoji,
+      image_url: useImage ? image_url : null,
+      user_id: user.id,
+      is_active: true,
+    }
+
     if (myAds.length > 0) {
-      const { error } = await supabase.from('ads').update({
-        business_name: bizName, description, category,
-        location_name: locationName, emoji, user_id: user.id, is_active: true,
-      }).eq('user_id', user.id)
+      const { error } = await supabase.from('ads').update(adData).eq('user_id', user.id)
       if (!error) setSaveMsg('Ad updated! ✅')
       else setSaveMsg('Error: ' + error.message)
     } else {
-      const { error } = await supabase.from('ads').insert({
-        business_name: bizName, description, category,
-        location_name: locationName, emoji, user_id: user.id, is_active: true, radius_km: 10,
-      })
+      const { error } = await supabase.from('ads').insert({ ...adData, radius_km: 10 })
       if (!error) {
         setSaveMsg('Ad created! ✅')
         const { data: adsData } = await supabase.from('ads').select('*').eq('user_id', user.id)
@@ -90,11 +125,14 @@ export default function AdvertiserDashboard() {
     </div>
   )
 
+  const previewIcon = useImage && logoPreview
+    ? <img src={logoPreview} alt="logo" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }} />
+    : <span style={{ fontSize: '32px' }}>{emoji || '🏪'}</span>
+
   return (
     <div style={{ minHeight: '100vh', fontFamily: "'DM Sans', sans-serif", background: '#faf8f4' }}>
       <style>{`
         @media (min-width: 768px) {
-          .adv-layout { display: flex !important; }
           .adv-sidebar { display: flex !important; }
           .adv-main { margin-left: 240px !important; }
           .adv-mobile-nav { display: none !important; }
@@ -105,7 +143,6 @@ export default function AdvertiserDashboard() {
         }
       `}</style>
 
-      {/* SIDEBAR - 데스크탑만 */}
       <aside className="adv-sidebar" style={{ width: '240px', background: '#1a3a2a', minHeight: '100vh', flexDirection: 'column', position: 'fixed', top: 0, left: 0, bottom: 0, display: 'none' }}>
         <div style={{ padding: '28px 24px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
           <div style={{ fontFamily: 'Georgia, serif', fontSize: '22px', color: '#fff' }}>
@@ -131,9 +168,7 @@ export default function AdvertiserDashboard() {
         </div>
       </aside>
 
-      {/* MAIN */}
       <div className="adv-main" style={{ marginLeft: '0' }}>
-        {/* 헤더 */}
         <div style={{ background: '#1a3a2a', padding: '0 24px', height: '58px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
           <div style={{ fontFamily: 'Georgia, serif', fontSize: '20px', color: '#fff' }}>
             near<span style={{ color: '#7dcf9a', fontStyle: 'italic' }}>me</span>
@@ -147,7 +182,6 @@ export default function AdvertiserDashboard() {
           </div>
         </div>
 
-        {/* 모바일 탭 */}
         <div className="adv-mobile-nav" style={{ background: '#fff', borderBottom: '1px solid #e8e4de', display: 'flex', padding: '8px 16px', gap: '8px' }}>
           {[{ label: '📊 Dashboard', tab: 'dashboard' }, { label: '➕ Create Ad', tab: 'create' }].map((item) => (
             <button key={item.tab} onClick={() => setActiveTab(item.tab as any)} style={{ flex: 1, border: 'none', borderRadius: '100px', padding: '9px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', background: activeTab === item.tab ? '#1a3a2a' : '#f0f0f0', color: activeTab === item.tab ? '#fff' : '#4a4a4a' }}>{item.label}</button>
@@ -161,7 +195,6 @@ export default function AdvertiserDashboard() {
             </div>
           )}
 
-          {/* DASHBOARD TAB */}
           {activeTab === 'dashboard' && (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '24px' }}>
@@ -184,7 +217,12 @@ export default function AdvertiserDashboard() {
                   <div style={{ fontFamily: 'Georgia, serif', fontSize: '18px', marginBottom: '14px' }}>My Ads</div>
                   {myAds.map((ad) => (
                     <div key={ad.id} style={{ background: '#fff', border: '1px solid #e8e4de', borderRadius: '14px', padding: '16px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-                      <div style={{ fontSize: '32px' }}>{ad.emoji}</div>
+                      <div style={{ width: '48px', height: '48px', borderRadius: '10px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#e8f4f0', flexShrink: 0 }}>
+                        {ad.image_url
+                          ? <img src={ad.image_url} alt={ad.business_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          : <span style={{ fontSize: '28px' }}>{ad.emoji}</span>
+                        }
+                      </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '15px', fontWeight: '600', marginBottom: '4px' }}>{ad.business_name}</div>
                         <div style={{ fontSize: '13px', color: '#8a8a8a', marginBottom: '6px' }}>{ad.description}</div>
@@ -241,7 +279,6 @@ export default function AdvertiserDashboard() {
             </>
           )}
 
-          {/* CREATE AD TAB */}
           {activeTab === 'create' && (
             <div>
               <div style={{ fontFamily: 'Georgia, serif', fontSize: '20px', marginBottom: '6px' }}>
@@ -251,8 +288,11 @@ export default function AdvertiserDashboard() {
                 This is what locals will see in the Sponsored strip and feed.
               </div>
 
+              {/* PREVIEW */}
               <div style={{ background: '#fdf6e8', border: '1px solid #f0e4c0', borderRadius: '12px', padding: '14px 16px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ fontSize: '32px' }}>{emoji || '🏪'}</div>
+                <div style={{ width: '44px', height: '44px', borderRadius: '10px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', flexShrink: 0 }}>
+                  {previewIcon}
+                </div>
                 <div>
                   <div style={{ fontSize: '13px', fontWeight: '600' }}>{bizName || 'Your Business Name'}</div>
                   <div style={{ fontSize: '11px', color: '#8a8a8a' }}>{description || 'Your tagline here'}</div>
@@ -261,13 +301,41 @@ export default function AdvertiserDashboard() {
                 <div style={{ marginLeft: 'auto', fontSize: '10px', color: '#c8952a', fontWeight: '600', textTransform: 'uppercase' }}>Preview</div>
               </div>
 
-              <div style={{ marginBottom: '18px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a', display: 'block', marginBottom: '8px' }}>Pick an emoji</label>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {['🏪', '🍜', '🍕', '☕', '🏠', '💆', '🛒', '💇', '🏋️', '🐾', '🌿', '🔧', '📚', '🎨', '🧁', '🍣'].map((e) => (
-                    <button key={e} onClick={() => setEmoji(e)} style={{ fontSize: '22px', width: '40px', height: '40px', borderRadius: '8px', border: emoji === e ? '2px solid #1a3a2a' : '1.5px solid #e8e4de', background: emoji === e ? '#e8f4f0' : '#fff', cursor: 'pointer' }}>{e}</button>
-                  ))}
+              {/* LOGO OR EMOJI */}
+              <div style={{ marginBottom: '20px', background: '#fff', border: '1px solid #e8e4de', borderRadius: '12px', padding: '16px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '12px' }}>Brand icon</label>
+
+                {/* 탭 선택 */}
+                <div style={{ display: 'flex', background: '#f0f0f0', borderRadius: '100px', padding: '3px', marginBottom: '14px', gap: '3px' }}>
+                  <button onClick={() => setUseImage(false)} style={{ flex: 1, border: 'none', borderRadius: '100px', padding: '7px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', background: !useImage ? '#fff' : 'transparent', color: !useImage ? '#1a1a1a' : '#8a8a8a' }}>😊 Emoji</button>
+                  <button onClick={() => setUseImage(true)} style={{ flex: 1, border: 'none', borderRadius: '100px', padding: '7px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', background: useImage ? '#fff' : 'transparent', color: useImage ? '#1a1a1a' : '#8a8a8a' }}>🖼️ Logo image</button>
                 </div>
+
+                {!useImage ? (
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {['🏪', '🍜', '🍕', '☕', '🏠', '💆', '🛒', '💇', '🏋️', '🐾', '🌿', '🔧', '📚', '🎨', '🧁', '🍣'].map((e) => (
+                      <button key={e} onClick={() => setEmoji(e)} style={{ fontSize: '22px', width: '40px', height: '40px', borderRadius: '8px', border: emoji === e ? '2px solid #1a3a2a' : '1.5px solid #e8e4de', background: emoji === e ? '#e8f4f0' : '#fff', cursor: 'pointer' }}>{e}</button>
+                    ))}
+                  </div>
+                ) : (
+                  <div>
+                    <div onClick={() => document.getElementById('logoInput')?.click()} style={{ border: '2px dashed #e8e4de', borderRadius: '10px', padding: '20px', textAlign: 'center', cursor: 'pointer', background: '#faf8f4' }}>
+                      {logoPreview ? (
+                        <img src={logoPreview} alt="logo" style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '10px', margin: '0 auto', display: 'block' }} />
+                      ) : (
+                        <div>
+                          <div style={{ fontSize: '32px', marginBottom: '8px' }}>🖼️</div>
+                          <div style={{ fontSize: '13px', color: '#8a8a8a' }}>Tap to upload your logo</div>
+                          <div style={{ fontSize: '11px', color: '#c8c8c8', marginTop: '4px' }}>PNG, JPG recommended</div>
+                        </div>
+                      )}
+                    </div>
+                    <input id="logoInput" type="file" accept="image/*" onChange={handleLogoChange} style={{ display: 'none' }} />
+                    {logoPreview && (
+                      <button onClick={() => { setLogoPreview(null); setLogoImage(null); setUseImage(false) }} style={{ marginTop: '8px', background: 'transparent', border: 'none', fontSize: '12px', color: '#c0392b', cursor: 'pointer', textDecoration: 'underline' }}>Remove image</button>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div style={{ marginBottom: '14px' }}>
