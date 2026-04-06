@@ -21,8 +21,20 @@ export default function AdvertiserDashboard() {
   const [useImage, setUseImage] = useState(false)
   const [posterImage, setPosterImage] = useState<File | null>(null)
   const [posterPreview, setPosterPreview] = useState<string | null>(null)
+  const [heroColor, setHeroColor] = useState('#1a3a2a')
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState('')
+
+  const heroColors = [
+    { color: '#1a3a2a', label: 'Forest' },
+    { color: '#1a1a2e', label: 'Navy' },
+    { color: '#2c1810', label: 'Espresso' },
+    { color: '#1a2a3a', label: 'Ocean' },
+    { color: '#2d1b4e', label: 'Purple' },
+    { color: '#3a1a1a', label: 'Burgundy' },
+    { color: '#1a3a3a', label: 'Teal' },
+    { color: '#2a2a2a', label: 'Charcoal' },
+  ]
 
   useEffect(() => {
     const checkUser = async () => {
@@ -47,6 +59,7 @@ export default function AdvertiserDashboard() {
         if (ad.emoji) setEmoji(ad.emoji)
         if (ad.image_url) { setLogoPreview(ad.image_url); setUseImage(true) }
         if (ad.poster_url) setPosterPreview(ad.poster_url)
+        if (ad.hero_color) setHeroColor(ad.hero_color)
       }
 
       setLoading(false)
@@ -96,7 +109,6 @@ export default function AdvertiserDashboard() {
       const url = await uploadFile(logoImage, 'ad-logo')
       if (url) image_url = url
     }
-
     if (posterImage) {
       const url = await uploadFile(posterImage, 'ad-poster')
       if (url) poster_url = url
@@ -110,6 +122,7 @@ export default function AdvertiserDashboard() {
       emoji: useImage ? null : emoji,
       image_url: useImage ? image_url : null,
       poster_url,
+      hero_color: heroColor,
       user_id: user.id,
       is_active: true,
     }
@@ -236,22 +249,20 @@ export default function AdvertiserDashboard() {
                   {myAds.map((ad) => (
                     <div key={ad.id} style={{ background: '#fff', border: '1px solid #e8e4de', borderRadius: '14px', overflow: 'hidden', marginBottom: '10px' }}>
                       {ad.poster_url && (
-                        <img src={ad.poster_url} alt="poster" style={{ width: '100%', height: '160px', objectFit: 'cover' }} />
+                        <img src={ad.poster_url} alt="poster" style={{ width: '100%', objectFit: 'cover', display: 'block' }} />
                       )}
                       <div style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
                         <div style={{ width: '48px', height: '48px', borderRadius: '10px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#e8f4f0', flexShrink: 0 }}>
-                          {ad.image_url
-                            ? <img src={ad.image_url} alt={ad.business_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            : <span style={{ fontSize: '28px' }}>{ad.emoji}</span>
-                          }
+                          {ad.image_url ? <img src={ad.image_url} alt={ad.business_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '28px' }}>{ad.emoji}</span>}
                         </div>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: '15px', fontWeight: '600', marginBottom: '4px' }}>{ad.business_name}</div>
                           <div style={{ fontSize: '13px', color: '#8a8a8a', marginBottom: '6px' }}>{ad.description}</div>
-                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                             <span style={{ fontSize: '11px', background: '#e8f5e8', color: '#2d7a2d', padding: '2px 8px', borderRadius: '100px' }}>{ad.category}</span>
                             <span style={{ fontSize: '11px', background: '#e8f4f0', color: '#1a3a2a', padding: '2px 8px', borderRadius: '100px' }}>📍 {ad.location_name}</span>
                             <span style={{ fontSize: '11px', background: '#eaf5ec', color: '#2d7a3a', padding: '2px 8px', borderRadius: '100px' }}>● Live</span>
+                            {ad.hero_color && <span style={{ width: '16px', height: '16px', borderRadius: '50%', background: ad.hero_color, border: '1px solid #e8e4de', display: 'inline-block' }} />}
                           </div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -312,16 +323,32 @@ export default function AdvertiserDashboard() {
               </div>
 
               {/* PREVIEW */}
-              <div style={{ background: '#fdf6e8', border: '1px solid #f0e4c0', borderRadius: '12px', padding: '14px 16px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ width: '44px', height: '44px', borderRadius: '10px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', flexShrink: 0 }}>
+              <div style={{ background: heroColor, borderRadius: '12px', padding: '20px 16px', marginBottom: '20px', textAlign: 'center' }}>
+                <div style={{ width: '60px', height: '60px', borderRadius: '12px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', background: 'rgba(255,255,255,0.15)' }}>
                   {previewIcon}
                 </div>
-                <div>
-                  <div style={{ fontSize: '13px', fontWeight: '600' }}>{bizName || 'Your Business Name'}</div>
-                  <div style={{ fontSize: '11px', color: '#8a8a8a' }}>{description || 'Your tagline here'}</div>
-                  <div style={{ fontSize: '11px', color: '#4a8c5c', fontWeight: '500' }}>{locationName || 'Your suburb'}</div>
+                <div style={{ fontSize: '18px', fontWeight: '700', color: '#fff', marginBottom: '4px' }}>{bizName || 'Your Business Name'}</div>
+                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)', marginBottom: '8px' }}>{description || 'Your tagline here'}</div>
+                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>📍 {locationName || 'Your suburb'}</div>
+                {posterPreview && <img src={posterPreview} alt="poster preview" style={{ width: '100%', borderRadius: '8px', marginTop: '12px', objectFit: 'cover' }} />}
+                <div style={{ marginTop: '8px', fontSize: '10px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px' }}>Preview</div>
+              </div>
+
+              {/* HERO COLOR */}
+              <div style={{ marginBottom: '20px', background: '#fff', border: '1px solid #e8e4de', borderRadius: '12px', padding: '16px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '12px' }}>🎨 Hero background color</label>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  {heroColors.map(({ color, label }) => (
+                    <div key={color} onClick={() => setHeroColor(color)} style={{ cursor: 'pointer', textAlign: 'center' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: color, border: heroColor === color ? '3px solid #4a8c5c' : '2px solid #e8e4de', boxSizing: 'border-box' }} />
+                      <div style={{ fontSize: '10px', color: '#8a8a8a', marginTop: '4px' }}>{label}</div>
+                    </div>
+                  ))}
+                  <div style={{ cursor: 'pointer', textAlign: 'center' }}>
+                    <input type="color" value={heroColor} onChange={e => setHeroColor(e.target.value)} style={{ width: '40px', height: '40px', borderRadius: '10px', border: '2px solid #e8e4de', cursor: 'pointer', padding: '2px' }} />
+                    <div style={{ fontSize: '10px', color: '#8a8a8a', marginTop: '4px' }}>Custom</div>
+                  </div>
                 </div>
-                <div style={{ marginLeft: 'auto', fontSize: '10px', color: '#c8952a', fontWeight: '600', textTransform: 'uppercase' }}>Preview</div>
               </div>
 
               {/* BRAND ICON */}
@@ -354,22 +381,19 @@ export default function AdvertiserDashboard() {
               {/* POSTER UPLOAD */}
               <div style={{ marginBottom: '20px', background: '#fff', border: '1px solid #e8e4de', borderRadius: '12px', padding: '16px' }}>
                 <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '4px' }}>📸 Business poster <span style={{ fontWeight: '400', color: '#8a8a8a' }}>(optional)</span></label>
-                <div style={{ fontSize: '12px', color: '#8a8a8a', marginBottom: '12px' }}>Shown on your business profile page. Use a banner, menu, or promo image.</div>
+                <div style={{ fontSize: '12px', color: '#8a8a8a', marginBottom: '12px' }}>Shown full-width on your business page. Use a banner, menu, or promo image.</div>
                 <div onClick={() => document.getElementById('posterInput')?.click()} style={{ border: '2px dashed #e8e4de', borderRadius: '10px', overflow: 'hidden', cursor: 'pointer', background: '#faf8f4' }}>
-                  {posterPreview ? (
-                    <img src={posterPreview} alt="poster" style={{ width: '100%', height: '180px', objectFit: 'cover', display: 'block' }} />
-                  ) : (
-                    <div style={{ padding: '28px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '36px', marginBottom: '8px' }}>🖼️</div>
-                      <div style={{ fontSize: '13px', color: '#8a8a8a' }}>Tap to upload a poster or banner</div>
-                      <div style={{ fontSize: '11px', color: '#c8c8c8', marginTop: '4px' }}>Recommended: 1200×600px</div>
-                    </div>
-                  )}
+                  {posterPreview
+                    ? <img src={posterPreview} alt="poster" style={{ width: '100%', objectFit: 'cover', display: 'block' }} />
+                    : <div style={{ padding: '28px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '36px', marginBottom: '8px' }}>🖼️</div>
+                        <div style={{ fontSize: '13px', color: '#8a8a8a' }}>Tap to upload a poster or banner</div>
+                        <div style={{ fontSize: '11px', color: '#c8c8c8', marginTop: '4px' }}>Recommended: 1200×600px</div>
+                      </div>
+                  }
                 </div>
                 <input id="posterInput" type="file" accept="image/*" onChange={handlePosterChange} style={{ display: 'none' }} />
-                {posterPreview && (
-                  <button onClick={() => { setPosterPreview(null); setPosterImage(null) }} style={{ marginTop: '8px', background: 'transparent', border: 'none', fontSize: '12px', color: '#c0392b', cursor: 'pointer', textDecoration: 'underline' }}>Remove poster</button>
-                )}
+                {posterPreview && <button onClick={() => { setPosterPreview(null); setPosterImage(null) }} style={{ marginTop: '8px', background: 'transparent', border: 'none', fontSize: '12px', color: '#c0392b', cursor: 'pointer', textDecoration: 'underline' }}>Remove poster</button>}
               </div>
 
               <div style={{ marginBottom: '14px' }}>
