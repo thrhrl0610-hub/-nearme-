@@ -17,27 +17,38 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/auth'); return }
-      setUser(user)
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) { router.push('/auth'); return }
+        setUser(user)
 
-      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-      if (profileData) setProfile(profileData)
+        const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+        if (profileData) setProfile(profileData)
 
-      const { data, error } = await supabase.from('listings').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
-      if (!error && data) setListings(data)
+        const { data, error } = await supabase.from('listings').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+        if (!error && data) setListings(data)
 
-      const { data: savesData } = await supabase.from('saves').select('*, listings(*)').eq('user_id', user.id).order('created_at', { ascending: false })
-      if (savesData) setSavedListings(savesData.map((s: any) => s.listings).filter(Boolean))
+        const { data: savesData } = await supabase.from('saves').select('*, listings(*)').eq('user_id', user.id).order('created_at', { ascending: false })
+        if (savesData) setSavedListings(savesData.map((s: any) => s.listings).filter(Boolean))
 
-      // 푸시 이미 구독했는지 확인
-      if ('serviceWorker' in navigator && 'PushManager' in window) {
-        const reg = await navigator.serviceWorker.ready
-        const sub = await reg.pushManager.getSubscription()
-        if (sub) setPushEnabled(true)
+        // 푸시 확인 - 타임아웃 걸어서 무한대기 방지
+        try {
+          if ('serviceWorker' in navigator && 'PushManager' in window) {
+            const reg = await navigator.serviceWorker.getRegistration()
+            if (reg) {
+              const sub = await reg.pushManager.getSubscription()
+              if (sub) setPushEnabled(true)
+            }
+          }
+        } catch (e) {
+          console.log('Push check failed:', e)
+        }
+
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setLoading(false)
       }
-
-      setLoading(false)
     }
     fetchData()
   }, [])
@@ -46,7 +57,10 @@ export default function ProfilePage() {
     setPushLoading(true)
     try {
       const reg = await navigator.serviceWorker.register('/sw.js')
-      await navigator.serviceWorker.ready
+      await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+      ])
 
       if (pushEnabled) {
         const sub = await reg.pushManager.getSubscription()
@@ -87,7 +101,11 @@ export default function ProfilePage() {
     if (!error) setListings(listings.filter(l => l.id !== id))
   }
 
-  if (loading) return <div style={{ minHeight: '100vh', background: '#faf8f4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a8a8a' }}>Loading...</div>
+  if (loading) return (
+    <div style={{ minHeight: '100vh', background: '#faf8f4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a8a8a' }}>
+      Loading...
+    </div>
+  )
 
   return (
     <main style={{ minHeight: '100vh', background: '#faf8f4', paddingBottom: '80px' }}>
@@ -99,7 +117,6 @@ export default function ProfilePage() {
       </nav>
 
       <div style={{ maxWidth: '680px', margin: '0 auto', padding: '24px' }}>
-        {/* PROFILE CARD */}
         <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '24px', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#1a3a2a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', color: '#fff', fontWeight: '700', flexShrink: 0 }}>
@@ -120,7 +137,6 @@ export default function ProfilePage() {
             <button onClick={() => router.push('/post')} style={{ background: '#e85d2f', color: '#fff', border: 'none', borderRadius: '100px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>+ Post</button>
           </div>
 
-          {/* PUSH NOTIFICATIONS */}
           <div style={{ marginTop: '16px', background: '#f5f5f5', borderRadius: '10px', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '2px' }}>🔔 Push notifications</div>
@@ -131,7 +147,6 @@ export default function ProfilePage() {
             </button>
           </div>
 
-          {/* VERIFICATION BANNER */}
           {!profile?.is_verified && (
             <div style={{ marginTop: '12px', background: '#fdf6e8', border: '1px solid #f0e4c0', borderRadius: '10px', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ flex: 1 }}>
@@ -147,7 +162,6 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* BUSINESS DASHBOARD LINK */}
           {profile?.is_business && (
             <div style={{ marginTop: '12px' }}>
               <button onClick={() => router.push('/advertiser')} style={{ width: '100%', background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '10px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
@@ -157,7 +171,6 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* TABS */}
         <div style={{ display: 'flex', background: '#e8e4de', borderRadius: '100px', padding: '4px', marginBottom: '20px', gap: '4px' }}>
           <button onClick={() => setActiveTab('my')} style={{ flex: 1, border: 'none', borderRadius: '100px', padding: '10px', fontSize: '14px', fontWeight: '500', cursor: 'pointer', background: activeTab === 'my' ? '#fff' : 'transparent', color: activeTab === 'my' ? '#1a1a1a' : '#8a8a8a' }}>
             My listings ({listings.length})
