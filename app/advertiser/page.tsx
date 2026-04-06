@@ -19,6 +19,8 @@ export default function AdvertiserDashboard() {
   const [logoImage, setLogoImage] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [useImage, setUseImage] = useState(false)
+  const [posterImage, setPosterImage] = useState<File | null>(null)
+  const [posterPreview, setPosterPreview] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState('')
 
@@ -35,12 +37,16 @@ export default function AdvertiserDashboard() {
       if (profile.suburb) setLocationName(profile.suburb)
 
       const { data: adsData } = await supabase.from('ads').select('*').eq('user_id', user.id)
-      if (adsData) {
+      if (adsData && adsData.length > 0) {
         setMyAds(adsData)
-        if (adsData.length > 0 && adsData[0].image_url) {
-          setLogoPreview(adsData[0].image_url)
-          setUseImage(true)
-        }
+        const ad = adsData[0]
+        if (ad.business_name) setBizName(ad.business_name)
+        if (ad.description) setDescription(ad.description)
+        if (ad.category) setCategory(ad.category)
+        if (ad.location_name) setLocationName(ad.location_name)
+        if (ad.emoji) setEmoji(ad.emoji)
+        if (ad.image_url) { setLogoPreview(ad.image_url); setUseImage(true) }
+        if (ad.poster_url) setPosterPreview(ad.poster_url)
       }
 
       setLoading(false)
@@ -61,11 +67,21 @@ export default function AdvertiserDashboard() {
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      setLogoImage(file)
-      setLogoPreview(URL.createObjectURL(file))
-      setUseImage(true)
-    }
+    if (file) { setLogoImage(file); setLogoPreview(URL.createObjectURL(file)); setUseImage(true) }
+  }
+
+  const handlePosterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) { setPosterImage(file); setPosterPreview(URL.createObjectURL(file)) }
+  }
+
+  const uploadFile = async (file: File, prefix: string) => {
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${prefix}-${user.id}-${Date.now()}.${fileExt}`
+    const { error } = await supabase.storage.from('listings').upload(fileName, file)
+    if (error) return null
+    const { data } = supabase.storage.from('listings').getPublicUrl(fileName)
+    return data.publicUrl
   }
 
   const handleCreateAd = async () => {
@@ -73,16 +89,17 @@ export default function AdvertiserDashboard() {
     setSaving(true)
     setSaveMsg('')
 
-    let image_url = logoPreview && useImage && !logoImage ? logoPreview : null
+    let image_url = useImage && logoPreview && !logoImage ? logoPreview : null
+    let poster_url = posterPreview && !posterImage ? posterPreview : null
 
     if (logoImage && useImage) {
-      const fileExt = logoImage.name.split('.').pop()
-      const fileName = `ad-logo-${user.id}-${Date.now()}.${fileExt}`
-      const { error: uploadError } = await supabase.storage.from('listings').upload(fileName, logoImage)
-      if (!uploadError) {
-        const { data: urlData } = supabase.storage.from('listings').getPublicUrl(fileName)
-        image_url = urlData.publicUrl
-      }
+      const url = await uploadFile(logoImage, 'ad-logo')
+      if (url) image_url = url
+    }
+
+    if (posterImage) {
+      const url = await uploadFile(posterImage, 'ad-poster')
+      if (url) poster_url = url
     }
 
     const adData = {
@@ -92,6 +109,7 @@ export default function AdvertiserDashboard() {
       location_name: locationName,
       emoji: useImage ? null : emoji,
       image_url: useImage ? image_url : null,
+      poster_url,
       user_id: user.id,
       is_active: true,
     }
@@ -216,25 +234,30 @@ export default function AdvertiserDashboard() {
                 <div style={{ marginBottom: '24px' }}>
                   <div style={{ fontFamily: 'Georgia, serif', fontSize: '18px', marginBottom: '14px' }}>My Ads</div>
                   {myAds.map((ad) => (
-                    <div key={ad.id} style={{ background: '#fff', border: '1px solid #e8e4de', borderRadius: '14px', padding: '16px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-                      <div style={{ width: '48px', height: '48px', borderRadius: '10px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#e8f4f0', flexShrink: 0 }}>
-                        {ad.image_url
-                          ? <img src={ad.image_url} alt={ad.business_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          : <span style={{ fontSize: '28px' }}>{ad.emoji}</span>
-                        }
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '15px', fontWeight: '600', marginBottom: '4px' }}>{ad.business_name}</div>
-                        <div style={{ fontSize: '13px', color: '#8a8a8a', marginBottom: '6px' }}>{ad.description}</div>
-                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: '11px', background: '#e8f5e8', color: '#2d7a2d', padding: '2px 8px', borderRadius: '100px' }}>{ad.category}</span>
-                          <span style={{ fontSize: '11px', background: '#e8f4f0', color: '#1a3a2a', padding: '2px 8px', borderRadius: '100px' }}>📍 {ad.location_name}</span>
-                          <span style={{ fontSize: '11px', background: '#eaf5ec', color: '#2d7a3a', padding: '2px 8px', borderRadius: '100px' }}>● Live</span>
+                    <div key={ad.id} style={{ background: '#fff', border: '1px solid #e8e4de', borderRadius: '14px', overflow: 'hidden', marginBottom: '10px' }}>
+                      {ad.poster_url && (
+                        <img src={ad.poster_url} alt="poster" style={{ width: '100%', height: '160px', objectFit: 'cover' }} />
+                      )}
+                      <div style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                        <div style={{ width: '48px', height: '48px', borderRadius: '10px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#e8f4f0', flexShrink: 0 }}>
+                          {ad.image_url
+                            ? <img src={ad.image_url} alt={ad.business_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            : <span style={{ fontSize: '28px' }}>{ad.emoji}</span>
+                          }
                         </div>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <button onClick={() => setActiveTab('create')} style={{ background: '#fdf6e8', color: '#c8952a', border: 'none', borderRadius: '8px', padding: '7px 12px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Edit</button>
-                        <button onClick={() => handleDeleteAd(ad.id)} style={{ background: '#fde8e8', color: '#c0392b', border: 'none', borderRadius: '8px', padding: '7px 12px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Delete</button>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '15px', fontWeight: '600', marginBottom: '4px' }}>{ad.business_name}</div>
+                          <div style={{ fontSize: '13px', color: '#8a8a8a', marginBottom: '6px' }}>{ad.description}</div>
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '11px', background: '#e8f5e8', color: '#2d7a2d', padding: '2px 8px', borderRadius: '100px' }}>{ad.category}</span>
+                            <span style={{ fontSize: '11px', background: '#e8f4f0', color: '#1a3a2a', padding: '2px 8px', borderRadius: '100px' }}>📍 {ad.location_name}</span>
+                            <span style={{ fontSize: '11px', background: '#eaf5ec', color: '#2d7a3a', padding: '2px 8px', borderRadius: '100px' }}>● Live</span>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <button onClick={() => setActiveTab('create')} style={{ background: '#fdf6e8', color: '#c8952a', border: 'none', borderRadius: '8px', padding: '7px 12px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Edit</button>
+                          <button onClick={() => handleDeleteAd(ad.id)} style={{ background: '#fde8e8', color: '#c0392b', border: 'none', borderRadius: '8px', padding: '7px 12px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Delete</button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -301,16 +324,13 @@ export default function AdvertiserDashboard() {
                 <div style={{ marginLeft: 'auto', fontSize: '10px', color: '#c8952a', fontWeight: '600', textTransform: 'uppercase' }}>Preview</div>
               </div>
 
-              {/* LOGO OR EMOJI */}
+              {/* BRAND ICON */}
               <div style={{ marginBottom: '20px', background: '#fff', border: '1px solid #e8e4de', borderRadius: '12px', padding: '16px' }}>
                 <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '12px' }}>Brand icon</label>
-
-                {/* 탭 선택 */}
                 <div style={{ display: 'flex', background: '#f0f0f0', borderRadius: '100px', padding: '3px', marginBottom: '14px', gap: '3px' }}>
                   <button onClick={() => setUseImage(false)} style={{ flex: 1, border: 'none', borderRadius: '100px', padding: '7px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', background: !useImage ? '#fff' : 'transparent', color: !useImage ? '#1a1a1a' : '#8a8a8a' }}>😊 Emoji</button>
                   <button onClick={() => setUseImage(true)} style={{ flex: 1, border: 'none', borderRadius: '100px', padding: '7px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', background: useImage ? '#fff' : 'transparent', color: useImage ? '#1a1a1a' : '#8a8a8a' }}>🖼️ Logo image</button>
                 </div>
-
                 {!useImage ? (
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     {['🏪', '🍜', '🍕', '☕', '🏠', '💆', '🛒', '💇', '🏋️', '🐾', '🌿', '🔧', '📚', '🎨', '🧁', '🍣'].map((e) => (
@@ -320,21 +340,35 @@ export default function AdvertiserDashboard() {
                 ) : (
                   <div>
                     <div onClick={() => document.getElementById('logoInput')?.click()} style={{ border: '2px dashed #e8e4de', borderRadius: '10px', padding: '20px', textAlign: 'center', cursor: 'pointer', background: '#faf8f4' }}>
-                      {logoPreview ? (
-                        <img src={logoPreview} alt="logo" style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '10px', margin: '0 auto', display: 'block' }} />
-                      ) : (
-                        <div>
-                          <div style={{ fontSize: '32px', marginBottom: '8px' }}>🖼️</div>
-                          <div style={{ fontSize: '13px', color: '#8a8a8a' }}>Tap to upload your logo</div>
-                          <div style={{ fontSize: '11px', color: '#c8c8c8', marginTop: '4px' }}>PNG, JPG recommended</div>
-                        </div>
-                      )}
+                      {logoPreview
+                        ? <img src={logoPreview} alt="logo" style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '10px', margin: '0 auto', display: 'block' }} />
+                        : <div><div style={{ fontSize: '32px', marginBottom: '8px' }}>🖼️</div><div style={{ fontSize: '13px', color: '#8a8a8a' }}>Tap to upload your logo</div></div>
+                      }
                     </div>
                     <input id="logoInput" type="file" accept="image/*" onChange={handleLogoChange} style={{ display: 'none' }} />
-                    {logoPreview && (
-                      <button onClick={() => { setLogoPreview(null); setLogoImage(null); setUseImage(false) }} style={{ marginTop: '8px', background: 'transparent', border: 'none', fontSize: '12px', color: '#c0392b', cursor: 'pointer', textDecoration: 'underline' }}>Remove image</button>
-                    )}
+                    {logoPreview && <button onClick={() => { setLogoPreview(null); setLogoImage(null); setUseImage(false) }} style={{ marginTop: '8px', background: 'transparent', border: 'none', fontSize: '12px', color: '#c0392b', cursor: 'pointer', textDecoration: 'underline' }}>Remove</button>}
                   </div>
+                )}
+              </div>
+
+              {/* POSTER UPLOAD */}
+              <div style={{ marginBottom: '20px', background: '#fff', border: '1px solid #e8e4de', borderRadius: '12px', padding: '16px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '4px' }}>📸 Business poster <span style={{ fontWeight: '400', color: '#8a8a8a' }}>(optional)</span></label>
+                <div style={{ fontSize: '12px', color: '#8a8a8a', marginBottom: '12px' }}>Shown on your business profile page. Use a banner, menu, or promo image.</div>
+                <div onClick={() => document.getElementById('posterInput')?.click()} style={{ border: '2px dashed #e8e4de', borderRadius: '10px', overflow: 'hidden', cursor: 'pointer', background: '#faf8f4' }}>
+                  {posterPreview ? (
+                    <img src={posterPreview} alt="poster" style={{ width: '100%', height: '180px', objectFit: 'cover', display: 'block' }} />
+                  ) : (
+                    <div style={{ padding: '28px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '36px', marginBottom: '8px' }}>🖼️</div>
+                      <div style={{ fontSize: '13px', color: '#8a8a8a' }}>Tap to upload a poster or banner</div>
+                      <div style={{ fontSize: '11px', color: '#c8c8c8', marginTop: '4px' }}>Recommended: 1200×600px</div>
+                    </div>
+                  )}
+                </div>
+                <input id="posterInput" type="file" accept="image/*" onChange={handlePosterChange} style={{ display: 'none' }} />
+                {posterPreview && (
+                  <button onClick={() => { setPosterPreview(null); setPosterImage(null) }} style={{ marginTop: '8px', background: 'transparent', border: 'none', fontSize: '12px', color: '#c0392b', cursor: 'pointer', textDecoration: 'underline' }}>Remove poster</button>
                 )}
               </div>
 

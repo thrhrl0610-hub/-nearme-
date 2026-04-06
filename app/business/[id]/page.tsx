@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
+import BottomNav from '../../../components/BottomNav'
 
 export default function BusinessPage() {
   const [ad, setAd] = useState<any>(null)
@@ -13,21 +14,11 @@ export default function BusinessPage() {
 
   useEffect(() => {
     const fetchBusiness = async () => {
-      const { data: adData } = await supabase
-        .from('ads')
-        .select('*')
-        .eq('id', id)
-        .single()
-
+      const { data: adData } = await supabase.from('ads').select('*').eq('id', id).single()
       if (adData) {
         setAd(adData)
         if (adData.user_id) {
-          const { data: listingsData } = await supabase
-            .from('listings')
-            .select('*')
-            .eq('user_id', adData.user_id)
-            .order('created_at', { ascending: false })
-            .limit(12)
+          const { data: listingsData } = await supabase.from('listings').select('*').eq('user_id', adData.user_id).order('created_at', { ascending: false }).limit(12)
           if (listingsData) setListings(listingsData)
         }
       }
@@ -60,7 +51,12 @@ export default function BusinessPage() {
 
       {/* 비즈니스 히어로 */}
       <div style={{ background: "linear-gradient(135deg, #1a3a2a, #4a8c5c)", padding: "40px 24px", textAlign: "center" }}>
-        <div style={{ fontSize: "72px", marginBottom: "16px" }}>{ad.emoji || '🏪'}</div>
+        <div style={{ width: "80px", height: "80px", borderRadius: "16px", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", background: "rgba(255,255,255,0.15)" }}>
+          {ad.image_url
+            ? <img src={ad.image_url} alt={ad.business_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            : <span style={{ fontSize: "48px" }}>{ad.emoji || '🏪'}</span>
+          }
+        </div>
         <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "8px" }}>Sponsored Business</div>
         <h1 style={{ fontFamily: "Georgia, serif", fontSize: "28px", color: "#fff", margin: "0 0 10px" }}>{ad.business_name}</h1>
         <p style={{ fontSize: "15px", color: "rgba(255,255,255,0.8)", margin: "0 0 12px" }}>{ad.description}</p>
@@ -74,9 +70,15 @@ export default function BusinessPage() {
         )}
       </div>
 
+      {/* 포스터 이미지 */}
+      {ad.poster_url && (
+        <div style={{ width: "100%", maxHeight: "280px", overflow: "hidden" }}>
+          <img src={ad.poster_url} alt={`${ad.business_name} poster`} style={{ width: "100%", objectFit: "cover", display: "block" }} />
+        </div>
+      )}
+
       <div style={{ padding: "24px", maxWidth: "800px", margin: "0 auto" }}>
-        {/* 리스팅 섹션 */}
-        {listings.length > 0 && (
+        {listings.length > 0 ? (
           <>
             <div style={{ fontFamily: "Georgia, serif", fontSize: "20px", marginBottom: "16px" }}>
               Listings by {ad.business_name}
@@ -100,31 +102,18 @@ export default function BusinessPage() {
               ))}
             </div>
           </>
-        )}
-
-        {listings.length === 0 && (
-          <div style={{ textAlign: "center", padding: "48px 24px", color: "#8a8a8a" }}>
-            <div style={{ fontSize: "40px", marginBottom: "12px" }}>📭</div>
-            <div style={{ fontSize: "15px" }}>No listings yet from this business</div>
-          </div>
+        ) : (
+          /* 포스터 없고 리스팅도 없을 때만 빈 상태 표시 */
+          !ad.poster_url && (
+            <div style={{ textAlign: "center", padding: "48px 24px", color: "#8a8a8a" }}>
+              <div style={{ fontSize: "40px", marginBottom: "12px" }}>📭</div>
+              <div style={{ fontSize: "15px" }}>No listings yet from this business</div>
+            </div>
+          )
         )}
       </div>
 
-      {/* 하단 네비 */}
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#fff", borderTop: "1px solid #e8e4de", display: "flex", justifyContent: "space-around", padding: "8px 0 12px" }}>
-        {[
-          ["🏠", "Home", "/"],
-          ["🔍", "Browse", "/browse"],
-          ["➕", "Post", "/post"],
-          ["💬", "Chat", "/messages"],
-          ["👤", "Profile", "/profile"]
-        ].map(([icon, label, href]) => (
-          <div key={label} onClick={() => router.push(href as string)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px", cursor: "pointer", fontSize: "11px", color: "#8a8a8a" }}>
-            <div style={{ fontSize: "22px" }}>{icon}</div>
-            {label}
-          </div>
-        ))}
-      </div>
+      <BottomNav />
     </main>
   )
 }
