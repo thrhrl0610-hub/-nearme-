@@ -124,7 +124,8 @@ export default function AdvertiserDashboard() {
       poster_url,
       hero_color: heroColor,
       user_id: user.id,
-      is_active: true,
+      is_active: false,
+status: 'pending',
     }
 
     if (myAds.length > 0) {

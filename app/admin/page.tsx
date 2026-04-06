@@ -8,19 +8,17 @@ const ADMIN_EMAIL = 'thrhrl0610@gmail.com'
 export default function AdminPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'reports' | 'listings' | 'users'>('reports')
+  const [activeTab, setActiveTab] = useState<'ads' | 'reports' | 'listings' | 'users'>('ads')
   const [reports, setReports] = useState<any[]>([])
   const [listings, setListings] = useState<any[]>([])
   const [users, setUsers] = useState<any[]>([])
-  const [stats, setStats] = useState({ listings: 0, users: 0, reports: 0, ads: 0 })
+  const [ads, setAds] = useState<any[]>([])
+  const [stats, setStats] = useState({ listings: 0, users: 0, reports: 0, pendingAds: 0 })
 
   useEffect(() => {
     const checkAdmin = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user || user.email !== ADMIN_EMAIL) {
-        router.push('/')
-        return
-      }
+      if (!user || user.email !== ADMIN_EMAIL) { router.push('/'); return }
       await fetchAll()
       setLoading(false)
     }
@@ -32,23 +30,42 @@ export default function AdminPage() {
       { data: reportsData },
       { data: listingsData },
       { data: usersData },
+      { data: adsData },
       { count: listingCount },
       { count: userCount },
       { count: reportCount },
-      { count: adCount },
+      { count: pendingCount },
     ] = await Promise.all([
       supabase.from('reports').select('*, listings(title)').order('created_at', { ascending: false }).limit(50),
       supabase.from('listings').select('*').order('created_at', { ascending: false }).limit(50),
       supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(50),
+      supabase.from('ads').select('*').order('created_at', { ascending: false }),
       supabase.from('listings').select('*', { count: 'exact', head: true }),
       supabase.from('profiles').select('*', { count: 'exact', head: true }),
       supabase.from('reports').select('*', { count: 'exact', head: true }),
-      supabase.from('ads').select('*', { count: 'exact', head: true }),
+      supabase.from('ads').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
     ])
     if (reportsData) setReports(reportsData)
     if (listingsData) setListings(listingsData)
     if (usersData) setUsers(usersData)
-    setStats({ listings: listingCount || 0, users: userCount || 0, reports: reportCount || 0, ads: adCount || 0 })
+    if (adsData) setAds(adsData)
+    setStats({ listings: listingCount || 0, users: userCount || 0, reports: reportCount || 0, pendingAds: pendingCount || 0 })
+  }
+
+  const handleApproveAd = async (adId: string) => {
+    await supabase.from('ads').update({ status: 'active', is_active: true }).eq('id', adId)
+    setAds(ads.map(a => a.id === adId ? { ...a, status: 'active', is_active: true } : a))
+  }
+
+  const handleRejectAd = async (adId: string) => {
+    await supabase.from('ads').update({ status: 'rejected', is_active: false }).eq('id', adId)
+    setAds(ads.map(a => a.id === adId ? { ...a, status: 'rejected', is_active: false } : a))
+  }
+
+  const handleDeleteAd = async (adId: string) => {
+    if (!confirm('Delete this ad?')) return
+    await supabase.from('ads').delete().eq('id', adId)
+    setAds(ads.filter(a => a.id !== adId))
   }
 
   const handleDeleteListing = async (id: string) => {
@@ -73,9 +90,12 @@ export default function AdminPage() {
     </div>
   )
 
+  const pendingAds = ads.filter(a => a.status === 'pending')
+  const activeAds = ads.filter(a => a.status === 'active')
+  const rejectedAds = ads.filter(a => a.status === 'rejected')
+
   return (
     <div style={{ minHeight: '100vh', fontFamily: "'DM Sans', sans-serif", background: '#faf8f4' }}>
-      {/* HEADER */}
       <div style={{ background: '#1a3a2a', padding: '0 32px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{ fontFamily: 'Georgia, serif', fontSize: '22px', color: '#fff' }}>
@@ -92,7 +112,7 @@ export default function AdminPage() {
           {[
             { label: 'Total listings', value: stats.listings, emoji: '📦' },
             { label: 'Total users', value: stats.users, emoji: '👤' },
-            { label: 'Active ads', value: stats.ads, emoji: '📣' },
+            { label: 'Pending ads', value: stats.pendingAds, emoji: '⏳', alert: stats.pendingAds > 0 },
             { label: 'Reports', value: stats.reports, emoji: '🚩', alert: stats.reports > 0 },
           ].map((stat) => (
             <div key={stat.label} style={{ background: '#fff', border: `1px solid ${stat.alert ? '#f0d0d0' : '#e8e4de'}`, borderRadius: '14px', padding: '20px 22px' }}>
@@ -106,6 +126,7 @@ export default function AdminPage() {
         {/* TABS */}
         <div style={{ display: 'flex', background: '#e8e4de', borderRadius: '100px', padding: '4px', marginBottom: '24px', gap: '4px', width: 'fit-content' }}>
           {[
+            { label: `⏳ Ads (${pendingAds.length} pending)`, value: 'ads' },
             { label: `🚩 Reports (${reports.length})`, value: 'reports' },
             { label: `📦 Listings (${listings.length})`, value: 'listings' },
             { label: `👤 Users (${users.length})`, value: 'users' },
@@ -113,6 +134,100 @@ export default function AdminPage() {
             <button key={tab.value} onClick={() => setActiveTab(tab.value as any)} style={{ border: 'none', borderRadius: '100px', padding: '10px 20px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', background: activeTab === tab.value ? '#fff' : 'transparent', color: activeTab === tab.value ? '#1a1a1a' : '#8a8a8a' }}>{tab.label}</button>
           ))}
         </div>
+
+        {/* ADS TAB */}
+        {activeTab === 'ads' && (
+          <div>
+            {pendingAds.length > 0 && (
+              <>
+                <div style={{ fontFamily: 'Georgia, serif', fontSize: '18px', marginBottom: '14px', color: '#c8952a' }}>⏳ Pending approval ({pendingAds.length})</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '28px' }}>
+                  {pendingAds.map((ad) => (
+                    <div key={ad.id} style={{ background: '#fff', borderRadius: '14px', border: '2px solid #f0e4c0', overflow: 'hidden' }}>
+                      {ad.poster_url && <img src={ad.poster_url} alt="poster" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', display: 'block' }} />}
+                      <div style={{ padding: '16px 20px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '12px' }}>
+                          <div style={{ width: '52px', height: '52px', borderRadius: '10px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: ad.hero_color || '#1a3a2a', flexShrink: 0 }}>
+                            {ad.image_url ? <img src={ad.image_url} alt={ad.business_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '28px' }}>{ad.emoji}</span>}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '3px' }}>{ad.business_name}</div>
+                            <div style={{ fontSize: '13px', color: '#8a8a8a', marginBottom: '4px' }}>{ad.description}</div>
+                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '11px', background: '#fdf6e8', color: '#c8952a', padding: '2px 8px', borderRadius: '100px' }}>⏳ Pending</span>
+                              <span style={{ fontSize: '11px', background: '#e8f4f0', color: '#1a3a2a', padding: '2px 8px', borderRadius: '100px' }}>📍 {ad.location_name}</span>
+                              <span style={{ fontSize: '11px', background: '#e8f5e8', color: '#2d7a2d', padding: '2px 8px', borderRadius: '100px' }}>{ad.category}</span>
+                              {ad.hero_color && <span style={{ width: '16px', height: '16px', borderRadius: '50%', background: ad.hero_color, border: '1px solid #e8e4de', display: 'inline-block' }} />}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button onClick={() => handleApproveAd(ad.id)} style={{ flex: 1, background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>✅ Approve</button>
+                          <button onClick={() => handleRejectAd(ad.id)} style={{ flex: 1, background: '#fde8e8', color: '#c0392b', border: 'none', borderRadius: '8px', padding: '10px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>❌ Reject</button>
+                          <button onClick={() => router.push(`/business/${ad.id}`)} style={{ background: '#e8f4f0', color: '#1a3a2a', border: 'none', borderRadius: '8px', padding: '10px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>👁 Preview</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {activeAds.length > 0 && (
+              <>
+                <div style={{ fontFamily: 'Georgia, serif', fontSize: '18px', marginBottom: '14px', color: '#2d7a2d' }}>✅ Live ads ({activeAds.length})</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '28px' }}>
+                  {activeAds.map((ad) => (
+                    <div key={ad.id} style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8e4de', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                      <div style={{ width: '48px', height: '48px', borderRadius: '10px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: ad.hero_color || '#1a3a2a', flexShrink: 0 }}>
+                        {ad.image_url ? <img src={ad.image_url} alt={ad.business_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '24px' }}>{ad.emoji}</span>}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '3px' }}>{ad.business_name}</div>
+                        <div style={{ fontSize: '12px', color: '#8a8a8a' }}>{ad.description} · 📍 {ad.location_name}</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={() => router.push(`/business/${ad.id}`)} style={{ background: '#e8f4f0', color: '#1a3a2a', border: 'none', borderRadius: '8px', padding: '7px 12px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Preview</button>
+                        <button onClick={() => handleRejectAd(ad.id)} style={{ background: '#fdf6e8', color: '#c8952a', border: 'none', borderRadius: '8px', padding: '7px 12px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Pause</button>
+                        <button onClick={() => handleDeleteAd(ad.id)} style={{ background: '#fde8e8', color: '#c0392b', border: 'none', borderRadius: '8px', padding: '7px 12px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Delete</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {rejectedAds.length > 0 && (
+              <>
+                <div style={{ fontFamily: 'Georgia, serif', fontSize: '18px', marginBottom: '14px', color: '#c0392b' }}>❌ Rejected ({rejectedAds.length})</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {rejectedAds.map((ad) => (
+                    <div key={ad.id} style={{ background: '#fff', borderRadius: '14px', border: '1px solid #f0d0d0', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: '14px', opacity: 0.7 }}>
+                      <div style={{ width: '48px', height: '48px', borderRadius: '10px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#e8f4f0', flexShrink: 0 }}>
+                        {ad.image_url ? <img src={ad.image_url} alt={ad.business_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '24px' }}>{ad.emoji}</span>}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '3px' }}>{ad.business_name}</div>
+                        <div style={{ fontSize: '12px', color: '#8a8a8a' }}>{ad.description}</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={() => handleApproveAd(ad.id)} style={{ background: '#e8f5e8', color: '#2d7a2d', border: 'none', borderRadius: '8px', padding: '7px 12px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Approve</button>
+                        <button onClick={() => handleDeleteAd(ad.id)} style={{ background: '#fde8e8', color: '#c0392b', border: 'none', borderRadius: '8px', padding: '7px 12px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Delete</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {ads.length === 0 && (
+              <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8e4de', padding: '40px', textAlign: 'center', color: '#8a8a8a' }}>
+                <div style={{ fontSize: '32px', marginBottom: '8px' }}>📣</div>
+                No ads submitted yet
+              </div>
+            )}
+          </div>
+        )}
 
         {/* REPORTS TAB */}
         {activeTab === 'reports' && (
