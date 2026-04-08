@@ -48,15 +48,22 @@ export default function BusinessPage() {
         </div>
       </nav>
 
-      {/* 포스터 */}
-      {ad.poster_url && (
-        <div style={{ width: "100%" }}>
+      {/* 포스터 있을 때 */}
+      {ad.poster_url ? (
+        <>
           <img src={ad.poster_url} alt={`${ad.business_name} poster`} style={{ width: "100%", display: "block", maxHeight: "420px", objectFit: "cover" }} />
-        </div>
-      )}
-
-      {/* 포스터 없으면 기존 히어로 */}
-      {!ad.poster_url && (
+          <div style={{ background: heroColor, padding: "20px 24px 24px", textAlign: "center" }}>
+            <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "8px" }}>Sponsored Business</div>
+            <h1 style={{ fontFamily: "Georgia, serif", fontSize: "26px", color: "#fff", margin: "0 0 6px" }}>{ad.business_name}</h1>
+            <p style={{ fontSize: "15px", color: "rgba(255,255,255,0.8)", margin: "0 0 14px" }}>{ad.description}</p>
+            <div style={{ display: "flex", justifyContent: "center", gap: "8px", flexWrap: "wrap" }}>
+              <span style={{ background: "rgba(255,255,255,0.15)", borderRadius: "100px", padding: "5px 14px", color: "rgba(255,255,255,0.9)", fontSize: "13px" }}>📍 {ad.location_name}</span>
+              {ad.category && <span style={{ background: "rgba(255,255,255,0.15)", borderRadius: "100px", padding: "5px 14px", color: "rgba(255,255,255,0.9)", fontSize: "13px" }}>{ad.category}</span>}
+            </div>
+          </div>
+        </>
+      ) : (
+        /* 포스터 없으면 로고 + 텍스트 히어로 */
         <div style={{ background: heroColor, padding: "40px 24px 32px", textAlign: "center" }}>
           <div style={{ width: "90px", height: "90px", borderRadius: "18px", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", background: "rgba(255,255,255,0.2)" }}>
             {ad.image_url
@@ -67,36 +74,9 @@ export default function BusinessPage() {
           <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "8px" }}>Sponsored Business</div>
           <h1 style={{ fontFamily: "Georgia, serif", fontSize: "30px", color: "#fff", margin: "0 0 10px" }}>{ad.business_name}</h1>
           <p style={{ fontSize: "16px", color: "rgba(255,255,255,0.85)", margin: "0 0 14px" }}>{ad.description}</p>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(255,255,255,0.15)", borderRadius: "100px", padding: "7px 16px", color: "rgba(255,255,255,0.9)", fontSize: "14px" }}>
-            📍 {ad.location_name}
-          </div>
-          {ad.category && (
-            <div style={{ marginTop: "12px" }}>
-              <span style={{ background: "rgba(255,255,255,0.2)", borderRadius: "100px", padding: "5px 14px", color: "#fff", fontSize: "13px" }}>{ad.category}</span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 포스터 있을 때 - 로고 + 이름 + 태그 모두 heroColor 띠에 */}
-      {ad.poster_url && (
-        <div style={{ background: heroColor, padding: "16px 24px 20px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-            <div style={{ width: "56px", height: "56px", borderRadius: "12px", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.15)", flexShrink: 0 }}>
-              {ad.image_url
-                ? <img src={ad.image_url} alt={ad.business_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                : <span style={{ fontSize: "32px" }}>{ad.emoji || '🏪'}</span>
-              }
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "4px" }}>Sponsored Business</div>
-              <h1 style={{ fontFamily: "Georgia, serif", fontSize: "22px", color: "#fff", margin: "0 0 4px" }}>{ad.business_name}</h1>
-              <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.8)", margin: "0 0 8px" }}>{ad.description}</p>
-              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                <span style={{ background: "rgba(255,255,255,0.15)", borderRadius: "100px", padding: "4px 12px", color: "rgba(255,255,255,0.9)", fontSize: "12px" }}>📍 {ad.location_name}</span>
-                {ad.category && <span style={{ background: "rgba(255,255,255,0.15)", borderRadius: "100px", padding: "4px 12px", color: "rgba(255,255,255,0.9)", fontSize: "12px" }}>{ad.category}</span>}
-              </div>
-            </div>
+          <div style={{ display: "flex", justifyContent: "center", gap: "8px", flexWrap: "wrap" }}>
+            <span style={{ background: "rgba(255,255,255,0.15)", borderRadius: "100px", padding: "6px 16px", color: "rgba(255,255,255,0.9)", fontSize: "13px" }}>📍 {ad.location_name}</span>
+            {ad.category && <span style={{ background: "rgba(255,255,255,0.2)", borderRadius: "100px", padding: "6px 16px", color: "#fff", fontSize: "13px" }}>{ad.category}</span>}
           </div>
         </div>
       )}
@@ -111,7 +91,6 @@ export default function BusinessPage() {
         </div>
       )}
 
-      {/* 포스터도 없고 설명도 없으면 빈 상태 */}
       {!ad.poster_url && !ad.long_description && (
         <div style={{ textAlign: "center", padding: "48px 24px", color: "#8a8a8a" }}>
           <div style={{ fontSize: "40px", marginBottom: "12px" }}>📣</div>
