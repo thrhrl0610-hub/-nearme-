@@ -14,7 +14,15 @@ export default function BusinessPage() {
   useEffect(() => {
     const fetchBusiness = async () => {
       const { data: adData } = await supabase.from('ads').select('*').eq('id', id).single()
-      if (adData) setAd(adData)
+      if (adData) {
+        setAd(adData)
+        // 조회수 기록
+        const { data: { user } } = await supabase.auth.getUser()
+        await supabase.from('ad_views').insert({
+          ad_id: id,
+          user_id: user?.id || null,
+        })
+      }
       setLoading(false)
     }
     fetchBusiness()
@@ -36,7 +44,6 @@ export default function BusinessPage() {
 
   return (
     <main style={{ fontFamily: "'DM Sans', sans-serif", background: "#faf8f4", minHeight: "100vh", paddingBottom: "80px" }}>
-      {/* 헤더 */}
       <nav style={{ background: heroColor, padding: "0 24px", height: "58px", display: "flex", alignItems: "center", gap: "12px" }}>
         <button onClick={() => router.back()} style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "100px", padding: "7px 14px", color: "#fff", fontSize: "13px", cursor: "pointer" }}>← Back</button>
         <div style={{ fontFamily: "Georgia, serif", fontSize: "18px", color: "#fff" }}>
@@ -44,7 +51,6 @@ export default function BusinessPage() {
         </div>
       </nav>
 
-      {/* 비즈니스 히어로 */}
       <div style={{ background: heroColor, padding: "40px 24px 32px", textAlign: "center" }}>
         <div style={{ width: "90px", height: "90px", borderRadius: "18px", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", background: "rgba(255,255,255,0.15)" }}>
           {ad.image_url
@@ -65,14 +71,12 @@ export default function BusinessPage() {
         )}
       </div>
 
-      {/* 포스터 이미지 - 꽉 차게 */}
       {ad.poster_url && (
         <div style={{ width: "100%" }}>
           <img src={ad.poster_url} alt={`${ad.business_name} poster`} style={{ width: "100%", display: "block" }} />
         </div>
       )}
 
-      {/* 포스터도 없고 내용도 없으면 빈 상태 */}
       {!ad.poster_url && (
         <div style={{ textAlign: "center", padding: "48px 24px", color: "#8a8a8a" }}>
           <div style={{ fontSize: "40px", marginBottom: "12px" }}>📣</div>

@@ -73,7 +73,7 @@ export default function Home() {
       const { data: jobsData } = await supabase.from('jobs').select('*').limit(6)
       if (jobsData) setJobs(jobsData)
 
-      const { data: adsData } = await supabase.from('ads').select('*').limit(6)
+      const { data: adsData } = await supabase.from('ads').select('*').eq('status', 'active').limit(6)
       if (adsData) setAds(adsData)
 
       setLoading(false)
@@ -81,7 +81,14 @@ export default function Home() {
     fetchData()
   }, [activeCategory, search, radius, userLocation])
 
-  const handleAdClick = (adId: string) => router.push(`/business/${adId}`)
+  const handleAdClick = async (adId: string) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    await supabase.from('ad_clicks').insert({
+      ad_id: adId,
+      user_id: user?.id || null,
+    })
+    router.push(`/business/${adId}`)
+  }
 
   const handleAdvertiseClick = () => {
     if (currentUser) router.push('/advertiser')
@@ -97,7 +104,6 @@ export default function Home() {
 
   return (
     <main style={{ fontFamily: "'DM Sans', sans-serif", background: "#faf8f4", minHeight: "100vh", paddingBottom: "90px" }}>
-      {/* NAV */}
       <nav style={{ background: "#1a3a2a", padding: "0 20px", height: "62px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ fontFamily: "Georgia, serif", fontSize: "24px", color: "#fff" }}>
           near<span style={{ color: "#7dcf9a", fontStyle: "italic" }}>me</span>
@@ -111,12 +117,10 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* SEARCH */}
       <div style={{ background: "#1a3a2a", padding: "10px 20px 14px" }}>
         <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="🔍 Search listings..." style={{ width: "100%", border: "none", borderRadius: "100px", padding: "12px 20px", fontSize: "15px", outline: "none", boxSizing: "border-box", background: "rgba(255,255,255,0.15)", color: "#fff" }} />
       </div>
 
-      {/* RADIUS */}
       <div style={{ background: "#2d5a3d", padding: "10px 20px", display: "flex", alignItems: "center", gap: "8px", color: "rgba(255,255,255,0.85)", fontSize: "14px" }}>
         📍 <span style={{ whiteSpace: "nowrap" }}>Within <strong style={{ color: "#fff" }}>{radius} km</strong></span>
         <div style={{ marginLeft: "auto", display: "flex", gap: "6px" }}>

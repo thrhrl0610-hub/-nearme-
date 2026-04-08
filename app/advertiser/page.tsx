@@ -10,6 +10,7 @@ export default function AdvertiserDashboard() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'create'>('dashboard')
   const [myAds, setMyAds] = useState<any[]>([])
   const [user, setUser] = useState<any>(null)
+  const [stats, setStats] = useState({ clicks: 0, views: 0 })
 
   const [bizName, setBizName] = useState('')
   const [description, setDescription] = useState('')
@@ -60,6 +61,16 @@ export default function AdvertiserDashboard() {
         if (ad.image_url) { setLogoPreview(ad.image_url); setUseImage(true) }
         if (ad.poster_url) setPosterPreview(ad.poster_url)
         if (ad.hero_color) setHeroColor(ad.hero_color)
+
+        // 실제 클릭/조회수
+        const adIds = adsData.map((a: any) => a.id)
+        const oneWeekAgo = new Date()
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+        const [{ count: clickCount }, { count: viewCount }] = await Promise.all([
+          supabase.from('ad_clicks').select('*', { count: 'exact', head: true }).in('ad_id', adIds).gte('clicked_at', oneWeekAgo.toISOString()),
+          supabase.from('ad_views').select('*', { count: 'exact', head: true }).in('ad_id', adIds).gte('viewed_at', oneWeekAgo.toISOString()),
+        ])
+        setStats({ clicks: clickCount || 0, views: viewCount || 0 })
       }
 
       setLoading(false)
@@ -125,7 +136,7 @@ export default function AdvertiserDashboard() {
       hero_color: heroColor,
       user_id: user.id,
       is_active: false,
-status: 'pending',
+      status: 'pending',
     }
 
     if (myAds.length > 0) {
@@ -160,6 +171,9 @@ status: 'pending',
   const previewIcon = useImage && logoPreview
     ? <img src={logoPreview} alt="logo" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }} />
     : <span style={{ fontSize: '32px' }}>{emoji || '🏪'}</span>
+
+  const clickRate = stats.views > 0 ? ((stats.clicks / stats.views) * 100).toFixed(1) + '%' : '—'
+  const adStatus = myAds[0]?.status
 
   return (
     <div style={{ minHeight: '100vh', fontFamily: "'DM Sans', sans-serif", background: '#faf8f4' }}>
@@ -208,7 +222,9 @@ status: 'pending',
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             {myAds.length > 0 && (
-              <span style={{ background: '#eaf5ec', color: '#2d7a3a', fontSize: '12px', fontWeight: '600', padding: '4px 10px', borderRadius: '100px' }}>● {myAds.length} live</span>
+              <span style={{ background: adStatus === 'active' ? '#eaf5ec' : '#fdf6e8', color: adStatus === 'active' ? '#2d7a3a' : '#c8952a', fontSize: '12px', fontWeight: '600', padding: '4px 10px', borderRadius: '100px' }}>
+                {adStatus === 'active' ? '● Live' : '⏳ Pending'}
+              </span>
             )}
             <button onClick={() => router.push('/')} style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: 'none', borderRadius: '100px', padding: '7px 14px', fontSize: '12px', cursor: 'pointer' }}>← Home</button>
           </div>
@@ -229,16 +245,28 @@ status: 'pending',
 
           {activeTab === 'dashboard' && (
             <>
+              {/* 광고 pending 상태 알림 */}
+              {adStatus === 'pending' && (
+                <div style={{ background: '#fdf6e8', border: '1px solid #f0e4c0', borderRadius: '12px', padding: '16px 20px', marginBottom: '24px', fontSize: '14px', color: '#c8952a', fontWeight: '500' }}>
+                  ⏳ Your ad is pending approval. We'll review it shortly and notify you once it's live!
+                </div>
+              )}
+              {adStatus === 'rejected' && (
+                <div style={{ background: '#fde8e8', border: '1px solid #f0c0c0', borderRadius: '12px', padding: '16px 20px', marginBottom: '24px', fontSize: '14px', color: '#c0392b', fontWeight: '500' }}>
+                  ❌ Your ad was not approved. Please edit and resubmit.
+                </div>
+              )}
+
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '24px' }}>
                 {[
-                  { label: 'Reach this week', value: '4,280', sub: '↑ 18% vs last week', up: true },
-                  { label: 'Clicks', value: '347', sub: '↑ 8.1% CTR', up: true },
-                  { label: 'Ad spend (NZD)', value: '$49', sub: '$199/mo plan', up: false },
-                  { label: 'Cost per click', value: '$0.14', sub: 'vs Meta avg $1.80', up: true },
+                  { label: 'Views this week', value: stats.views.toLocaleString(), sub: 'Business page visits', up: stats.views > 0 },
+                  { label: 'Clicks this week', value: stats.clicks.toLocaleString(), sub: 'Sponsored strip clicks', up: stats.clicks > 0 },
+                  { label: 'Click rate', value: clickRate, sub: 'Clicks ÷ views', up: true },
+                  { label: 'Ad status', value: adStatus === 'active' ? '● Live' : adStatus === 'pending' ? '⏳ Pending' : adStatus === 'rejected' ? '❌ Rejected' : '—', sub: adStatus === 'active' ? 'Visible to locals' : adStatus === 'pending' ? 'Awaiting approval' : '—', up: adStatus === 'active' },
                 ].map((stat) => (
                   <div key={stat.label} style={{ background: '#fff', border: '1px solid #e8e4de', borderRadius: '14px', padding: '16px 18px' }}>
                     <div style={{ fontSize: '11px', color: '#8a8a8a', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{stat.label}</div>
-                    <div style={{ fontFamily: 'Georgia, serif', fontSize: '24px', marginBottom: '4px' }}>{stat.value}</div>
+                    <div style={{ fontFamily: 'Georgia, serif', fontSize: '22px', marginBottom: '4px' }}>{stat.value}</div>
                     <div style={{ fontSize: '12px', color: stat.up ? '#2d7a3a' : '#8a8a8a' }}>{stat.sub}</div>
                   </div>
                 ))}
@@ -262,8 +290,9 @@ status: 'pending',
                           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                             <span style={{ fontSize: '11px', background: '#e8f5e8', color: '#2d7a2d', padding: '2px 8px', borderRadius: '100px' }}>{ad.category}</span>
                             <span style={{ fontSize: '11px', background: '#e8f4f0', color: '#1a3a2a', padding: '2px 8px', borderRadius: '100px' }}>📍 {ad.location_name}</span>
-                            <span style={{ fontSize: '11px', background: '#eaf5ec', color: '#2d7a3a', padding: '2px 8px', borderRadius: '100px' }}>● Live</span>
-                            {ad.hero_color && <span style={{ width: '16px', height: '16px', borderRadius: '50%', background: ad.hero_color, border: '1px solid #e8e4de', display: 'inline-block' }} />}
+                            <span style={{ fontSize: '11px', background: ad.status === 'active' ? '#eaf5ec' : '#fdf6e8', color: ad.status === 'active' ? '#2d7a3a' : '#c8952a', padding: '2px 8px', borderRadius: '100px' }}>
+                              {ad.status === 'active' ? '● Live' : '⏳ Pending'}
+                            </span>
                           </div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -323,7 +352,6 @@ status: 'pending',
                 This is what locals will see in the Sponsored strip and feed.
               </div>
 
-              {/* PREVIEW */}
               <div style={{ background: heroColor, borderRadius: '12px', padding: '20px 16px', marginBottom: '20px', textAlign: 'center' }}>
                 <div style={{ width: '60px', height: '60px', borderRadius: '12px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', background: 'rgba(255,255,255,0.15)' }}>
                   {previewIcon}
@@ -335,7 +363,6 @@ status: 'pending',
                 <div style={{ marginTop: '8px', fontSize: '10px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px' }}>Preview</div>
               </div>
 
-              {/* HERO COLOR */}
               <div style={{ marginBottom: '20px', background: '#fff', border: '1px solid #e8e4de', borderRadius: '12px', padding: '16px' }}>
                 <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '12px' }}>🎨 Hero background color</label>
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
@@ -352,7 +379,6 @@ status: 'pending',
                 </div>
               </div>
 
-              {/* BRAND ICON */}
               <div style={{ marginBottom: '20px', background: '#fff', border: '1px solid #e8e4de', borderRadius: '12px', padding: '16px' }}>
                 <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '12px' }}>Brand icon</label>
                 <div style={{ display: 'flex', background: '#f0f0f0', borderRadius: '100px', padding: '3px', marginBottom: '14px', gap: '3px' }}>
@@ -379,7 +405,6 @@ status: 'pending',
                 )}
               </div>
 
-              {/* POSTER UPLOAD */}
               <div style={{ marginBottom: '20px', background: '#fff', border: '1px solid #e8e4de', borderRadius: '12px', padding: '16px' }}>
                 <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '4px' }}>📸 Business poster <span style={{ fontWeight: '400', color: '#8a8a8a' }}>(optional)</span></label>
                 <div style={{ fontSize: '12px', color: '#8a8a8a', marginBottom: '12px' }}>Shown full-width on your business page. Use a banner, menu, or promo image.</div>
