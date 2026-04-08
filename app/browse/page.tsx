@@ -60,8 +60,11 @@ export default function Browse() {
   return (
     <main style={{ fontFamily: "'DM Sans', sans-serif", background: "#faf8f4", minHeight: "100vh", paddingBottom: "80px" }}>
       <nav style={{ background: "#1a3a2a", padding: "0 24px", height: "58px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ fontFamily: "Georgia, serif", fontSize: "22px", color: "#fff" }}>
-          near<span style={{ color: "#7dcf9a", fontStyle: "italic" }}>me</span>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <button onClick={() => router.back()} style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "100px", padding: "7px 14px", color: "#fff", fontSize: "13px", cursor: "pointer" }}>← Back</button>
+          <div onClick={() => router.push('/')} style={{ fontFamily: "Georgia, serif", fontSize: "22px", color: "#fff", cursor: "pointer" }}>
+            near<span style={{ color: "#7dcf9a", fontStyle: "italic" }}>me</span>
+          </div>
         </div>
         <button onClick={() => router.push('/post')} style={{ background: "#e85d2f", color: "#fff", border: "none", borderRadius: "100px", padding: "8px 18px", fontSize: "13px", fontWeight: "600", cursor: "pointer" }}>+ Post</button>
       </nav>
@@ -75,7 +78,6 @@ export default function Browse() {
           </button>
         </div>
 
-        {/* FILTER PANEL */}
         {showFilters && (
           <div style={{ marginTop: "12px", background: "rgba(255,255,255,0.1)", borderRadius: "12px", padding: "14px 16px" }}>
             <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "flex-end" }}>
