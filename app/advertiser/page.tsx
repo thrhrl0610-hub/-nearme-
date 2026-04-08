@@ -23,22 +23,10 @@ export default function AdvertiserDashboard() {
   const [useImage, setUseImage] = useState(false)
   const [posterImage, setPosterImage] = useState<File | null>(null)
   const [posterPreview, setPosterPreview] = useState<string | null>(null)
-  const [heroColor, setHeroColor] = useState('#1a3a2a')
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [mapsUrl, setMapsUrl] = useState('')
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState('')
-
-  const heroColors = [
-    { color: '#1a3a2a', label: 'Forest' },
-    { color: '#1a1a2e', label: 'Navy' },
-    { color: '#2c1810', label: 'Espresso' },
-    { color: '#1a2a3a', label: 'Ocean' },
-    { color: '#2d1b4e', label: 'Purple' },
-    { color: '#3a1a1a', label: 'Burgundy' },
-    { color: '#1a3a3a', label: 'Teal' },
-    { color: '#2a2a2a', label: 'Charcoal' },
-  ]
 
   useEffect(() => {
     const checkUser = async () => {
@@ -64,7 +52,6 @@ export default function AdvertiserDashboard() {
         if (ad.emoji) setEmoji(ad.emoji)
         if (ad.image_url) { setLogoPreview(ad.image_url); setUseImage(true) }
         if (ad.poster_url) setPosterPreview(ad.poster_url)
-        if (ad.hero_color) setHeroColor(ad.hero_color)
         if (ad.website_url) setWebsiteUrl(ad.website_url)
         if (ad.maps_url) setMapsUrl(ad.maps_url)
 
@@ -151,7 +138,6 @@ export default function AdvertiserDashboard() {
       emoji: useImage ? null : emoji,
       image_url: useImage ? image_url : null,
       poster_url,
-      hero_color: heroColor,
       website_url: websiteUrl || null,
       maps_url: mapsUrl || null,
       user_id: user.id,
@@ -301,7 +287,7 @@ export default function AdvertiserDashboard() {
                   <div style={{ fontFamily: 'Georgia, serif', fontSize: '18px', marginBottom: '14px' }}>My Ads</div>
                   {myAds.map((ad) => (
                     <div key={ad.id} style={{ background: '#fff', border: '1px solid #e8e4de', borderRadius: '14px', overflow: 'hidden', marginBottom: '10px' }}>
-                      {ad.poster_url && <img src={ad.poster_url} alt="poster" style={{ width: '100%', objectFit: 'cover', display: 'block' }} />}
+                      {ad.poster_url && <img src={ad.poster_url} alt="poster" style={{ width: '100%', objectFit: 'cover', display: 'block', borderRadius: '14px 14px 0 0' }} />}
                       <div style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
                         <div style={{ width: '48px', height: '48px', borderRadius: '10px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#e8f4f0', flexShrink: 0 }}>
                           {ad.image_url ? <img src={ad.image_url} alt={ad.business_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '28px' }}>{ad.emoji}</span>}
@@ -374,33 +360,29 @@ export default function AdvertiserDashboard() {
                 This is what locals will see in the Sponsored strip and feed.
               </div>
 
-              <div style={{ background: heroColor, borderRadius: '12px', padding: '20px 16px', marginBottom: '20px', textAlign: 'center' }}>
-                <div style={{ width: '60px', height: '60px', borderRadius: '12px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', background: 'rgba(255,255,255,0.15)' }}>
-                  {previewIcon}
-                </div>
-                <div style={{ fontSize: '18px', fontWeight: '700', color: '#fff', marginBottom: '4px' }}>{bizName || 'Your Business Name'}</div>
-                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)', marginBottom: '8px' }}>{description || 'Your tagline here'}</div>
-                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>📍 {locationName || 'Your suburb'}</div>
-                {posterPreview && <img src={posterPreview} alt="poster preview" style={{ width: '100%', borderRadius: '8px', marginTop: '12px', objectFit: 'cover' }} />}
-                <div style={{ marginTop: '8px', fontSize: '10px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px' }}>Preview</div>
-              </div>
-
-              <div style={{ marginBottom: '20px', background: '#fff', border: '1px solid #e8e4de', borderRadius: '12px', padding: '16px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '12px' }}>🎨 Hero background color</label>
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  {heroColors.map(({ color, label }) => (
-                    <div key={color} onClick={() => setHeroColor(color)} style={{ cursor: 'pointer', textAlign: 'center' }}>
-                      <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: color, border: heroColor === color ? '3px solid #4a8c5c' : '2px solid #e8e4de', boxSizing: 'border-box' }} />
-                      <div style={{ fontSize: '10px', color: '#8a8a8a', marginTop: '4px' }}>{label}</div>
+              {/* PREVIEW - 흰 배경 */}
+              <div style={{ background: '#fff', border: '1px solid #e8e4de', borderRadius: '14px', overflow: 'hidden', marginBottom: '20px' }}>
+                {posterPreview && <img src={posterPreview} alt="poster preview" style={{ width: '100%', display: 'block' }} />}
+                <div style={{ padding: '16px 18px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                    <div style={{ width: '44px', height: '44px', borderRadius: '10px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#e8f4f0', flexShrink: 0 }}>
+                      {previewIcon}
                     </div>
-                  ))}
-                  <div style={{ cursor: 'pointer', textAlign: 'center' }}>
-                    <input type="color" value={heroColor} onChange={e => setHeroColor(e.target.value)} style={{ width: '40px', height: '40px', borderRadius: '10px', border: '2px solid #e8e4de', cursor: 'pointer', padding: '2px' }} />
-                    <div style={{ fontSize: '10px', color: '#8a8a8a', marginTop: '4px' }}>Custom</div>
+                    <div>
+                      <div style={{ fontSize: '15px', fontWeight: '600' }}>{bizName || 'Your Business Name'}</div>
+                      <div style={{ fontSize: '13px', color: '#8a8a8a' }}>{description || 'Your tagline here'}</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    <span style={{ background: '#e8f4f0', borderRadius: '100px', padding: '3px 10px', color: '#1a3a2a', fontSize: '11px' }}>📍 {locationName || 'Your suburb'}</span>
+                    {category && <span style={{ background: '#e8f4f0', borderRadius: '100px', padding: '3px 10px', color: '#1a3a2a', fontSize: '11px' }}>{category}</span>}
+                    <span style={{ background: '#fdf6e8', borderRadius: '100px', padding: '3px 10px', color: '#c8952a', fontSize: '11px' }}>📣 Sponsored</span>
                   </div>
                 </div>
+                <div style={{ padding: '6px 18px 12px', fontSize: '10px', color: '#c8c8c8', textTransform: 'uppercase', letterSpacing: '1px' }}>Preview</div>
               </div>
 
+              {/* BRAND ICON */}
               <div style={{ marginBottom: '20px', background: '#fff', border: '1px solid #e8e4de', borderRadius: '12px', padding: '16px' }}>
                 <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '12px' }}>Brand icon</label>
                 <div style={{ display: 'flex', background: '#f0f0f0', borderRadius: '100px', padding: '3px', marginBottom: '14px', gap: '3px' }}>
@@ -427,6 +409,7 @@ export default function AdvertiserDashboard() {
                 )}
               </div>
 
+              {/* POSTER */}
               <div style={{ marginBottom: '20px', background: '#fff', border: '1px solid #e8e4de', borderRadius: '12px', padding: '16px' }}>
                 <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '4px' }}>📸 Business poster <span style={{ fontWeight: '400', color: '#8a8a8a' }}>(optional)</span></label>
                 <div style={{ fontSize: '12px', color: '#8a8a8a', marginBottom: '12px' }}>Shown full-width on your business page. Use a banner, menu, or promo image.</div>
@@ -475,8 +458,7 @@ export default function AdvertiserDashboard() {
                 <textarea value={longDescription} onChange={e => setLongDescription(e.target.value)} placeholder="Tell locals about your business — hours, specialties, story..." rows={4} style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', resize: 'vertical', fontFamily: "'DM Sans', sans-serif" }} />
               </div>
 
-              {/* 링크 섹션 */}
-              <div style={{ marginBottom: '20px', background: '#fff', border: '1px solid #e8e4de', borderRadius: '12px', padding: '16px' }}>
+              <div style={{ marginBottom: '24px', background: '#fff', border: '1px solid #e8e4de', borderRadius: '12px', padding: '16px' }}>
                 <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '4px' }}>🔗 Links <span style={{ fontWeight: '400', color: '#8a8a8a' }}>(optional)</span></label>
                 <div style={{ fontSize: '12px', color: '#8a8a8a', marginBottom: '14px' }}>Add your website or Google Maps link — locals can tap to visit.</div>
                 <div style={{ marginBottom: '12px' }}>
