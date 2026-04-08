@@ -90,7 +90,6 @@ export default function Home() {
             const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
             return dist <= (ad.radius_km || 10)
           })
-          // Premier Plus 먼저, 나머지는 랜덤
           const premierPlus = filteredAds.filter(a => a.plan === 'PremierPlus')
           const others = filteredAds.filter(a => a.plan !== 'PremierPlus').sort(() => Math.random() - 0.5)
           setAds([...premierPlus, ...others])
@@ -106,7 +105,6 @@ export default function Home() {
     fetchData()
   }, [activeCategory, search, radius, userLocation])
 
-  // 자동 슬라이드
   useEffect(() => {
     if (ads.length <= 1) return
     const timer = setInterval(() => {
@@ -123,7 +121,7 @@ export default function Home() {
 
   const handleAdvertiseClick = () => {
     if (currentUser) router.push('/advertiser')
-    else router.push('/auth')
+    else router.push('/advertise')
   }
 
   const AdIcon = ({ ad, size = 28 }: { ad: any, size?: number }) => {
