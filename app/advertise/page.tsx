@@ -11,7 +11,7 @@ export default function AdvertisePage() {
           Reach locals with <span style={{ color: "#1a3a2a" }}>near</span><span style={{ color: "#4a8c5c", fontStyle: "italic" }}>me</span>
         </div>
         <div style={{ fontSize: "16px", color: "#4a4a4a", marginBottom: "28px", lineHeight: "1.6" }}>
-          너 사업주야? 만약 사업주라면 — advertise your business to people in your neighbourhood.
+        Are you a business owner? Advertise your business to people in your neighbourhood.
         </div>
 
         <div style={{ background: "#fff", border: "1px solid #e8e4de", borderRadius: "16px", padding: "20px 24px", marginBottom: "24px", textAlign: "left" }}>
