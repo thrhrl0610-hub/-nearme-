@@ -48,25 +48,15 @@ export default function BusinessPage() {
         </div>
       </nav>
 
-      {/* 포스터 있으면 히어로 위에 꽉 차게 */}
-      {ad.poster_url ? (
-        <div style={{ position: "relative" }}>
+      {/* 포스터 */}
+      {ad.poster_url && (
+        <div style={{ width: "100%" }}>
           <img src={ad.poster_url} alt={`${ad.business_name} poster`} style={{ width: "100%", display: "block", maxHeight: "420px", objectFit: "cover" }} />
-          {/* 포스터 위에 오버레이로 비즈니스 정보 */}
-          <div style={{ background: "linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%)", position: "absolute", bottom: 0, left: 0, right: 0, padding: "40px 24px 24px", textAlign: "center" }}>
-            <div style={{ width: "70px", height: "70px", borderRadius: "14px", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px", background: "rgba(255,255,255,0.15)", backdropFilter: "blur(4px)" }}>
-              {ad.image_url
-                ? <img src={ad.image_url} alt={ad.business_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                : <span style={{ fontSize: "40px" }}>{ad.emoji || '🏪'}</span>
-              }
-            </div>
-            <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.7)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "6px" }}>Sponsored Business</div>
-            <h1 style={{ fontFamily: "Georgia, serif", fontSize: "28px", color: "#fff", margin: "0 0 6px", textShadow: "0 1px 4px rgba(0,0,0,0.3)" }}>{ad.business_name}</h1>
-            <p style={{ fontSize: "15px", color: "rgba(255,255,255,0.9)", margin: "0", textShadow: "0 1px 3px rgba(0,0,0,0.3)" }}>{ad.description}</p>
-          </div>
         </div>
-      ) : (
-        /* 포스터 없으면 기존 히어로 */
+      )}
+
+      {/* 포스터 없으면 기존 히어로 */}
+      {!ad.poster_url && (
         <div style={{ background: heroColor, padding: "40px 24px 32px", textAlign: "center" }}>
           <div style={{ width: "90px", height: "90px", borderRadius: "18px", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", background: "rgba(255,255,255,0.2)" }}>
             {ad.image_url
@@ -88,21 +78,32 @@ export default function BusinessPage() {
         </div>
       )}
 
-      {/* 태그 (포스터 있을 때) */}
+      {/* 포스터 있을 때 - 로고 + 이름 + 태그 모두 heroColor 띠에 */}
       {ad.poster_url && (
-        <div style={{ background: heroColor, padding: "14px 24px", display: "flex", justifyContent: "center", gap: "8px", flexWrap: "wrap" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(255,255,255,0.15)", borderRadius: "100px", padding: "6px 14px", color: "rgba(255,255,255,0.9)", fontSize: "13px" }}>
-            📍 {ad.location_name}
+        <div style={{ background: heroColor, padding: "16px 24px 20px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+            <div style={{ width: "56px", height: "56px", borderRadius: "12px", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.15)", flexShrink: 0 }}>
+              {ad.image_url
+                ? <img src={ad.image_url} alt={ad.business_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : <span style={{ fontSize: "32px" }}>{ad.emoji || '🏪'}</span>
+              }
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "4px" }}>Sponsored Business</div>
+              <h1 style={{ fontFamily: "Georgia, serif", fontSize: "22px", color: "#fff", margin: "0 0 4px" }}>{ad.business_name}</h1>
+              <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.8)", margin: "0 0 8px" }}>{ad.description}</p>
+              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                <span style={{ background: "rgba(255,255,255,0.15)", borderRadius: "100px", padding: "4px 12px", color: "rgba(255,255,255,0.9)", fontSize: "12px" }}>📍 {ad.location_name}</span>
+                {ad.category && <span style={{ background: "rgba(255,255,255,0.15)", borderRadius: "100px", padding: "4px 12px", color: "rgba(255,255,255,0.9)", fontSize: "12px" }}>{ad.category}</span>}
+              </div>
+            </div>
           </div>
-          {ad.category && (
-            <span style={{ background: "rgba(255,255,255,0.2)", borderRadius: "100px", padding: "6px 14px", color: "#fff", fontSize: "13px" }}>{ad.category}</span>
-          )}
         </div>
       )}
 
       {/* 비즈니스 상세 설명 */}
       {ad.long_description && (
-        <div style={{ padding: "24px", maxWidth: "800px", margin: "0 auto" }}>
+        <div style={{ padding: "20px 24px", maxWidth: "800px", margin: "0 auto" }}>
           <div style={{ background: "#fff", borderRadius: "16px", border: "1px solid #e8e4de", padding: "20px 24px" }}>
             <div style={{ fontFamily: "Georgia, serif", fontSize: "18px", marginBottom: "12px" }}>About {ad.business_name}</div>
             <div style={{ fontSize: "15px", color: "#4a4a4a", lineHeight: "1.7", whiteSpace: "pre-wrap" }}>{ad.long_description}</div>
