@@ -69,48 +69,56 @@ export default function PostPage() {
   }
 
   return (
-    <main style={{ minHeight: '100vh', background: '#faf8f4', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-      <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8e4de', padding: '40px', width: '100%', maxWidth: '480px' }}>
-        <div style={{ fontFamily: 'Georgia, serif', fontSize: '22px', color: '#1a3a2a', marginBottom: '4px', textAlign: 'center' }}>
-          near<span style={{ color: '#4a8c5c', fontStyle: 'italic' }}>me</span>
+    <main style={{ minHeight: '100vh', background: '#faf8f4', paddingBottom: '40px' }}>
+      {/* NAV */}
+      <nav style={{ background: '#1a3a2a', padding: '0 24px', height: '58px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <button onClick={() => router.back()} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '100px', padding: '7px 14px', color: '#fff', fontSize: '13px', cursor: 'pointer' }}>← Back</button>
+        <div style={{ fontFamily: 'Georgia, serif', fontSize: '20px', color: '#fff' }}>
+          near<span style={{ color: '#7dcf9a', fontStyle: 'italic' }}>me</span>
         </div>
-        <div style={{ fontSize: '14px', color: '#8a8a8a', textAlign: 'center', marginBottom: '28px' }}>Post a listing</div>
+      </nav>
 
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a' }}>Category</label>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
+      <div style={{ padding: '24px', maxWidth: '480px', margin: '0 auto' }}>
+        <div style={{ fontFamily: 'Georgia, serif', fontSize: '22px', color: '#1a3a2a', marginBottom: '4px' }}>Post a listing</div>
+        <div style={{ fontSize: '14px', color: '#8a8a8a', marginBottom: '24px' }}>Share something with your neighbours</div>
+
+        <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8e4de', padding: '20px', marginBottom: '16px' }}>
+          <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '10px' }}>Category</label>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {['Marketplace', 'Jobs', 'Services', 'Events', 'Real Estate', 'Free'].map((cat) => (
-              <button key={cat} onClick={() => setCategory(cat)} style={{ border: category === cat ? 'none' : '1.5px solid #e8e4de', borderRadius: '100px', padding: '6px 14px', fontSize: '13px', background: category === cat ? '#1a3a2a' : '#fff', color: category === cat ? '#fff' : '#4a4a4a', cursor: 'pointer' }}>{cat}</button>
+              <button key={cat} onClick={() => setCategory(cat)} style={{ border: category === cat ? 'none' : '1.5px solid #e8e4de', borderRadius: '100px', padding: '7px 16px', fontSize: '14px', background: category === cat ? '#1a3a2a' : '#fff', color: category === cat ? '#fff' : '#4a4a4a', cursor: 'pointer' }}>{cat}</button>
             ))}
           </div>
         </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a' }}>Photo</label>
-          <div onClick={() => document.getElementById('imageInput')?.click()} style={{ marginTop: '8px', border: '2px dashed #e8e4de', borderRadius: '12px', padding: '20px', textAlign: 'center', cursor: 'pointer', background: imagePreview ? 'transparent' : '#faf8f4' }}>
+        <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8e4de', padding: '20px', marginBottom: '16px' }}>
+          <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '10px' }}>Photo</label>
+          <div onClick={() => document.getElementById('imageInput')?.click()} style={{ border: '2px dashed #e8e4de', borderRadius: '12px', padding: '20px', textAlign: 'center', cursor: 'pointer', background: imagePreview ? 'transparent' : '#faf8f4' }}>
             {imagePreview
               ? <img src={imagePreview} alt="preview" style={{ width: '100%', borderRadius: '8px', maxHeight: '200px', objectFit: 'cover' }} />
-              : <div style={{ color: '#8a8a8a', fontSize: '13px' }}>📷 Tap to add photo</div>
+              : <div style={{ color: '#8a8a8a', fontSize: '14px' }}>📷 Tap to add photo</div>
             }
           </div>
           <input id="imageInput" type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
         </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a' }}>Title</label>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What are you selling?" style={{ width: '100%', marginTop: '6px', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '10px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+        <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8e4de', padding: '20px', marginBottom: '16px' }}>
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '8px' }}>Title</label>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What are you selling?" style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+          </div>
+
+          <div>
+            <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '8px' }}>Description</label>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe your item..." rows={3} style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} />
+          </div>
         </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a' }}>Description</label>
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe your item..." rows={3} style={{ width: '100%', marginTop: '6px', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '10px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} />
-        </div>
-
-        <div style={{ marginBottom: '24px' }}>
-          <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a' }}>Price (NZD)</label>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginTop: '6px' }}>
-            <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" type="number" disabled={isFree} style={{ flex: 1, border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '10px 14px', fontSize: '14px', outline: 'none', opacity: isFree ? 0.4 : 1 }} />
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
+        <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8e4de', padding: '20px', marginBottom: '24px' }}>
+          <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '8px' }}>Price (NZD)</label>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" type="number" disabled={isFree} style={{ flex: 1, border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', opacity: isFree ? 0.4 : 1 }} />
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
               <input type="checkbox" checked={isFree} onChange={(e) => setIsFree(e.target.checked)} />
               Free
             </label>
@@ -118,10 +126,10 @@ export default function PostPage() {
         </div>
 
         {message && (
-          <div style={{ marginBottom: '16px', padding: '10px 14px', background: '#e8f5e8', borderRadius: '8px', fontSize: '13px', color: '#2d7a2d' }}>{message}</div>
+          <div style={{ marginBottom: '16px', padding: '12px 16px', background: '#e8f5e8', borderRadius: '10px', fontSize: '14px', color: '#2d7a2d' }}>{message}</div>
         )}
 
-        <button onClick={handlePost} disabled={loading} style={{ width: '100%', background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '12px', fontSize: '15px', fontWeight: '600', cursor: 'pointer' }}>
+        <button onClick={handlePost} disabled={loading} style={{ width: '100%', background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '14px', fontSize: '16px', fontWeight: '600', cursor: 'pointer' }}>
           {loading ? 'Posting...' : 'Post listing'}
         </button>
       </div>
