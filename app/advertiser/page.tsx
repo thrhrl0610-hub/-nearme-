@@ -339,6 +339,7 @@ export default function AdvertiserDashboard() {
                   { name: 'Starter', price: '$49', desc: 'Perfect for testing the waters', features: ['Sponsored Strip slot', 'Up to 5 km radius', '~1,200 local users/mo', 'Basic analytics'], popular: false },
                   { name: 'Growth', price: '$199', desc: 'For businesses ready to grow', features: ['Strip + Feed Ad placements', 'Up to 20 km radius', '~8,000 local users/mo', 'Full analytics + CTR', 'Priority placement'], popular: true },
                   { name: 'Premier', price: '$499', desc: 'Maximum local visibility', features: ['All placements incl. Banner', 'Up to 50 km radius', '~25,000 local users/mo', 'Advanced analytics', 'Dedicated support'], popular: false },
+                  { name: 'Premier Plus', price: '$999', desc: 'Always first — guaranteed top spot', features: ['⭐ Fixed #1 position always', 'Full Auckland coverage', 'Unlimited impressions', 'Priority support', 'Dedicated account manager'], popular: false },
                 ].map((plan) => (
                   <div key={plan.name} style={{ background: '#fff', border: `1.5px solid ${plan.popular ? '#1a3a2a' : '#e8e4de'}`, borderRadius: '14px', padding: '20px', position: 'relative' }}>
                     {plan.popular && <div style={{ position: 'absolute', top: '-1px', left: '50%', transform: 'translateX(-50%)', background: '#1a3a2a', color: '#fff', fontSize: '10px', fontWeight: '700', padding: '3px 12px', borderRadius: '0 0 8px 8px' }}>Most popular</div>}
