@@ -9,6 +9,7 @@ export default function Home() {
   const [listings, setListings] = useState<any[]>([])
   const [jobs, setJobs] = useState<any[]>([])
   const [activeCategory, setActiveCategory] = useState('All')
+  const [activeJobTab, setActiveJobTab] = useState('All')
   const [search, setSearch] = useState('')
   const [radius, setRadius] = useState(20)
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
@@ -70,10 +71,9 @@ export default function Home() {
         }
       }
 
-      const { data: jobsData } = await supabase.from('jobs').select('*').limit(6)
+      const { data: jobsData } = await supabase.from('jobs').select('*').order('created_at', { ascending: false }).limit(20)
       if (jobsData) setJobs(jobsData)
 
-      // 광고 반경 필터링
       const { data: adsData } = await supabase.from('ads').select('*').eq('status', 'active')
       if (adsData) {
         if (userLocation) {
@@ -101,10 +101,7 @@ export default function Home() {
 
   const handleAdClick = async (adId: string) => {
     const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('ad_clicks').insert({
-      ad_id: adId,
-      user_id: user?.id || null,
-    })
+    await supabase.from('ad_clicks').insert({ ad_id: adId, user_id: user?.id || null })
     router.push(`/business/${adId}`)
   }
 
@@ -119,6 +116,20 @@ export default function Home() {
     }
     return <span style={{ fontSize: size }}>{ad.emoji}</span>
   }
+
+  const jobTabs = [
+    { label: '🔴 Urgent', value: 'Urgent' },
+    { label: '📋 All', value: 'All' },
+    { label: '☕ Casual', value: 'Casual' },
+    { label: '⏰ Part-time', value: 'Part-time' },
+    { label: '💼 Full-time', value: 'Full-time' },
+  ]
+
+  const filteredJobs = jobs.filter(job => {
+    if (activeJobTab === 'Urgent') return job.is_urgent === true
+    if (activeJobTab === 'All') return true
+    return job.job_type === activeJobTab
+  }).slice(0, 6)
 
   return (
     <main style={{ fontFamily: "'DM Sans', sans-serif", background: "#faf8f4", minHeight: "100vh", paddingBottom: "90px" }}>
@@ -238,23 +249,53 @@ export default function Home() {
 
         {jobs.length > 0 && (
           <>
-            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "14px" }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "12px" }}>
               <div style={{ fontFamily: "Georgia, serif", fontSize: "22px" }}>Hiring today</div>
-              <div onClick={() => router.push('/browse')} style={{ fontSize: "15px", color: "#4a8c5c", cursor: "pointer", textDecoration: "underline" }}>See all →</div>
+              <div onClick={() => router.push('/browse?category=Jobs')} style={{ fontSize: "15px", color: "#4a8c5c", cursor: "pointer", textDecoration: "underline" }}>See all →</div>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {jobs.map((job) => (
-                <div key={job.id} onClick={() => router.push(`/jobs/${job.id}`)} style={{ background: "#fff", border: "1px solid #e8e4de", borderRadius: "16px", padding: "16px 18px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer" }}>
-                  <div style={{ width: "50px", height: "50px", borderRadius: "12px", background: "#e8f4f0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px", flexShrink: 0 }}>💼</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: "16px", fontWeight: "600", marginBottom: "3px" }}>{job.title}</div>
-                    <div style={{ fontSize: "14px", color: "#8a8a8a", marginBottom: "4px" }}>{job.company}</div>
-                    <span style={{ fontSize: "13px", borderRadius: "6px", padding: "3px 8px", fontWeight: "500", background: "#e8f5e8", color: "#2d7a2d" }}>{job.job_type}</span>
-                  </div>
-                  <div style={{ fontSize: "17px", fontWeight: "700" }}>{job.pay_rate}</div>
-                </div>
+
+            {/* JOB 탭 필터 */}
+            <div style={{ display: "flex", gap: "8px", overflowX: "auto", scrollbarWidth: "none", marginBottom: "14px", paddingBottom: "2px" }}>
+              {jobTabs.map((tab) => (
+                <button key={tab.value} onClick={() => setActiveJobTab(tab.value)} style={{
+                  border: "none",
+                  borderRadius: "100px",
+                  padding: "8px 16px",
+                  fontSize: "13px",
+                  fontWeight: activeJobTab === tab.value ? "600" : "400",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  background: activeJobTab === tab.value
+                    ? tab.value === 'Urgent' ? '#e85d2f' : '#1a3a2a'
+                    : '#fff',
+                  color: activeJobTab === tab.value ? '#fff' : '#4a4a4a',
+                  boxShadow: activeJobTab === tab.value ? 'none' : '0 0 0 1.5px #e8e4de inset',
+                }}>{tab.label}</button>
               ))}
             </div>
+
+            {filteredJobs.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "24px", color: "#8a8a8a", fontSize: "14px", background: "#fff", borderRadius: "14px", border: "1px solid #e8e4de" }}>
+                No {activeJobTab === 'Urgent' ? 'urgent' : activeJobTab.toLowerCase()} jobs right now
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                {filteredJobs.map((job) => (
+                  <div key={job.id} onClick={() => router.push(`/jobs/${job.id}`)} style={{ background: "#fff", border: `1px solid ${job.is_urgent ? '#e85d2f' : '#e8e4de'}`, borderRadius: "16px", padding: "16px 18px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", position: "relative" }}>
+                    {job.is_urgent && (
+                      <div style={{ position: "absolute", top: "-1px", left: "12px", background: "#e85d2f", color: "#fff", fontSize: "10px", fontWeight: "700", padding: "2px 8px", borderRadius: "0 0 6px 6px" }}>🔴 URGENT</div>
+                    )}
+                    <div style={{ width: "50px", height: "50px", borderRadius: "12px", background: job.is_urgent ? "#fde8e8" : "#e8f4f0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px", flexShrink: 0, marginTop: job.is_urgent ? "10px" : "0" }}>💼</div>
+                    <div style={{ flex: 1, marginTop: job.is_urgent ? "10px" : "0" }}>
+                      <div style={{ fontSize: "16px", fontWeight: "600", marginBottom: "3px" }}>{job.title}</div>
+                      <div style={{ fontSize: "14px", color: "#8a8a8a", marginBottom: "4px" }}>{job.company}{job.location_name ? ` · ${job.location_name}` : ''}</div>
+                      <span style={{ fontSize: "13px", borderRadius: "6px", padding: "3px 8px", fontWeight: "500", background: job.is_urgent ? "#fde8e8" : "#e8f5e8", color: job.is_urgent ? "#c0392b" : "#2d7a2d" }}>{job.job_type}</span>
+                    </div>
+                    <div style={{ fontSize: "17px", fontWeight: "700", flexShrink: 0, marginTop: job.is_urgent ? "10px" : "0" }}>{job.pay_rate}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         )}
       </div>
