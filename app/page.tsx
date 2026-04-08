@@ -73,8 +73,26 @@ export default function Home() {
       const { data: jobsData } = await supabase.from('jobs').select('*').limit(6)
       if (jobsData) setJobs(jobsData)
 
-      const { data: adsData } = await supabase.from('ads').select('*').eq('status', 'active').limit(6)
-      if (adsData) setAds(adsData)
+      // 광고 반경 필터링
+      const { data: adsData } = await supabase.from('ads').select('*').eq('status', 'active')
+      if (adsData) {
+        if (userLocation) {
+          const filteredAds = adsData.filter((ad) => {
+            if (!ad.latitude || !ad.longitude) return true
+            const R = 6371
+            const dLat = (ad.latitude - userLocation.lat) * Math.PI / 180
+            const dLng = (ad.longitude - userLocation.lng) * Math.PI / 180
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(ad.latitude * Math.PI / 180) *
+              Math.sin(dLng/2) * Math.sin(dLng/2)
+            const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+            return dist <= (ad.radius_km || 10)
+          })
+          setAds(filteredAds.slice(0, 6))
+        } else {
+          setAds(adsData.slice(0, 6))
+        }
+      }
 
       setLoading(false)
     }

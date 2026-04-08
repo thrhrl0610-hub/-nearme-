@@ -62,7 +62,6 @@ export default function AdvertiserDashboard() {
         if (ad.poster_url) setPosterPreview(ad.poster_url)
         if (ad.hero_color) setHeroColor(ad.hero_color)
 
-        // 실제 클릭/조회수
         const adIds = adsData.map((a: any) => a.id)
         const oneWeekAgo = new Date()
         oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
@@ -108,6 +107,16 @@ export default function AdvertiserDashboard() {
     return data.publicUrl
   }
 
+  const getLocation = (): Promise<{lat: number, lng: number} | null> => {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) { resolve(null); return }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => resolve(null)
+      )
+    })
+  }
+
   const handleCreateAd = async () => {
     if (!bizName || !description || !locationName) { setSaveMsg('Please fill in all fields'); return }
     setSaving(true)
@@ -125,7 +134,10 @@ export default function AdvertiserDashboard() {
       if (url) poster_url = url
     }
 
-    const adData = {
+    // 광고주 위치 저장
+    const loc = await getLocation()
+
+    const adData: any = {
       business_name: bizName,
       description,
       category,
@@ -137,6 +149,11 @@ export default function AdvertiserDashboard() {
       user_id: user.id,
       is_active: false,
       status: 'pending',
+    }
+
+    if (loc) {
+      adData.latitude = loc.lat
+      adData.longitude = loc.lng
     }
 
     if (myAds.length > 0) {
@@ -245,7 +262,6 @@ export default function AdvertiserDashboard() {
 
           {activeTab === 'dashboard' && (
             <>
-              {/* 광고 pending 상태 알림 */}
               {adStatus === 'pending' && (
                 <div style={{ background: '#fdf6e8', border: '1px solid #f0e4c0', borderRadius: '12px', padding: '16px 20px', marginBottom: '24px', fontSize: '14px', color: '#c8952a', fontWeight: '500' }}>
                   ⏳ Your ad is pending approval. We'll review it shortly and notify you once it's live!
@@ -277,9 +293,7 @@ export default function AdvertiserDashboard() {
                   <div style={{ fontFamily: 'Georgia, serif', fontSize: '18px', marginBottom: '14px' }}>My Ads</div>
                   {myAds.map((ad) => (
                     <div key={ad.id} style={{ background: '#fff', border: '1px solid #e8e4de', borderRadius: '14px', overflow: 'hidden', marginBottom: '10px' }}>
-                      {ad.poster_url && (
-                        <img src={ad.poster_url} alt="poster" style={{ width: '100%', objectFit: 'cover', display: 'block' }} />
-                      )}
+                      {ad.poster_url && <img src={ad.poster_url} alt="poster" style={{ width: '100%', objectFit: 'cover', display: 'block' }} />}
                       <div style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
                         <div style={{ width: '48px', height: '48px', borderRadius: '10px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#e8f4f0', flexShrink: 0 }}>
                           {ad.image_url ? <img src={ad.image_url} alt={ad.business_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '28px' }}>{ad.emoji}</span>}
@@ -290,6 +304,7 @@ export default function AdvertiserDashboard() {
                           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                             <span style={{ fontSize: '11px', background: '#e8f5e8', color: '#2d7a2d', padding: '2px 8px', borderRadius: '100px' }}>{ad.category}</span>
                             <span style={{ fontSize: '11px', background: '#e8f4f0', color: '#1a3a2a', padding: '2px 8px', borderRadius: '100px' }}>📍 {ad.location_name}</span>
+                            <span style={{ fontSize: '11px', background: '#e8f4f0', color: '#1a3a2a', padding: '2px 8px', borderRadius: '100px' }}>📡 {ad.radius_km || 10}km radius</span>
                             <span style={{ fontSize: '11px', background: ad.status === 'active' ? '#eaf5ec' : '#fdf6e8', color: ad.status === 'active' ? '#2d7a3a' : '#c8952a', padding: '2px 8px', borderRadius: '100px' }}>
                               {ad.status === 'active' ? '● Live' : '⏳ Pending'}
                             </span>
@@ -318,9 +333,9 @@ export default function AdvertiserDashboard() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
                 {[
-                  { name: 'Starter', price: '$49', desc: 'Perfect for testing the waters', features: ['Sponsored Strip slot', 'Up to 5 km radius', '~1,200 local users/mo', 'Basic analytics'], popular: false },
-                  { name: 'Growth', price: '$199', desc: 'For businesses ready to grow', features: ['Strip + Feed Ad placements', 'Up to 20 km radius', '~8,000 local users/mo', 'Full analytics + CTR', 'Priority placement'], popular: true },
-                  { name: 'Premier', price: '$499', desc: 'Maximum local visibility', features: ['All placements incl. Banner', 'Up to 50 km radius', '~25,000 local users/mo', 'Advanced analytics', 'Dedicated support'], popular: false },
+                  { name: 'Starter', price: '$49', desc: 'Perfect for testing the waters', features: ['Sponsored Strip slot', 'Up to 5 km radius', '~1,200 local users/mo', 'Basic analytics'], popular: false, radius: 5 },
+                  { name: 'Growth', price: '$199', desc: 'For businesses ready to grow', features: ['Strip + Feed Ad placements', 'Up to 20 km radius', '~8,000 local users/mo', 'Full analytics + CTR', 'Priority placement'], popular: true, radius: 20 },
+                  { name: 'Premier', price: '$499', desc: 'Maximum local visibility', features: ['All placements incl. Banner', 'Up to 50 km radius', '~25,000 local users/mo', 'Advanced analytics', 'Dedicated support'], popular: false, radius: 50 },
                 ].map((plan) => (
                   <div key={plan.name} style={{ background: '#fff', border: `1.5px solid ${plan.popular ? '#1a3a2a' : '#e8e4de'}`, borderRadius: '14px', padding: '20px', position: 'relative' }}>
                     {plan.popular && <div style={{ position: 'absolute', top: '-1px', left: '50%', transform: 'translateX(-50%)', background: '#1a3a2a', color: '#fff', fontSize: '10px', fontWeight: '700', padding: '3px 12px', borderRadius: '0 0 8px 8px' }}>Most popular</div>}
