@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import BottomNav from '../components/BottomNav'
@@ -16,6 +16,8 @@ export default function Home() {
   const [suburb, setSuburb] = useState('Locating...')
   const [loading, setLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState<any>(null)
+  const [currentAdIndex, setCurrentAdIndex] = useState(0)
+  const carouselRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -88,9 +90,14 @@ export default function Home() {
             const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
             return dist <= (ad.radius_km || 10)
           })
-          setAds(filteredAds.slice(0, 6))
+          // Premier Plus 먼저, 나머지는 랜덤
+          const premierPlus = filteredAds.filter(a => a.plan === 'PremierPlus')
+          const others = filteredAds.filter(a => a.plan !== 'PremierPlus').sort(() => Math.random() - 0.5)
+          setAds([...premierPlus, ...others])
         } else {
-          setAds(adsData.slice(0, 6))
+          const premierPlus = adsData.filter(a => a.plan === 'PremierPlus')
+          const others = adsData.filter(a => a.plan !== 'PremierPlus').sort(() => Math.random() - 0.5)
+          setAds([...premierPlus, ...others])
         }
       }
 
@@ -98,6 +105,15 @@ export default function Home() {
     }
     fetchData()
   }, [activeCategory, search, radius, userLocation])
+
+  // 자동 슬라이드
+  useEffect(() => {
+    if (ads.length <= 1) return
+    const timer = setInterval(() => {
+      setCurrentAdIndex(prev => (prev + 1) % ads.length)
+    }, 3500)
+    return () => clearInterval(timer)
+  }, [ads.length])
 
   const handleAdClick = async (adId: string) => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -130,6 +146,8 @@ export default function Home() {
     return job.job_type === activeJobTab
   }).slice(0, 6)
 
+  const currentAd = ads[currentAdIndex]
+
   return (
     <main style={{ fontFamily: "'DM Sans', sans-serif", background: "#faf8f4", minHeight: "100vh", paddingBottom: "90px" }}>
       <nav style={{ background: "#1a3a2a", padding: "0 20px", height: "62px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -158,24 +176,37 @@ export default function Home() {
         </div>
       </div>
 
-      {/* SPONSORED STRIP */}
+      {/* SPONSORED CAROUSEL */}
       {ads.length > 0 && (
-        <div style={{ background: "#fdf6e8", borderBottom: "1px solid #f0e4c0", padding: "12px 20px", display: "flex", alignItems: "center", gap: "14px", overflowX: "auto" }}>
-          <div style={{ fontSize: "11px", fontWeight: "700", color: "#c8952a", textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap" }}>📣 Sponsored</div>
-          {ads.map((ad) => (
-            <div key={ad.id} onClick={() => handleAdClick(ad.id)} style={{ display: "flex", alignItems: "center", gap: "10px", background: "#fff", border: "1px solid #f0e4c0", borderRadius: "10px", padding: "10px 16px", flexShrink: 0, cursor: "pointer" }}>
-              <div style={{ width: "36px", height: "36px", borderRadius: "8px", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <AdIcon ad={ad} size={36} />
-              </div>
-              <div>
-                <div style={{ fontSize: "15px", fontWeight: "600" }}>{ad.business_name}</div>
-                <div style={{ fontSize: "13px", color: "#8a8a8a" }}>{ad.description}</div>
-                <div style={{ fontSize: "12px", color: "#4a8c5c", fontWeight: "500" }}>{ad.location_name}</div>
-              </div>
+        <div style={{ background: "#fdf6e8", borderBottom: "1px solid #f0e4c0", padding: "12px 20px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
+            <div style={{ fontSize: "11px", fontWeight: "700", color: "#c8952a", textTransform: "uppercase", letterSpacing: "0.08em" }}>📣 Sponsored</div>
+            <div style={{ display: "flex", gap: "4px" }}>
+              {ads.map((_, i) => (
+                <div key={i} onClick={() => setCurrentAdIndex(i)} style={{ width: i === currentAdIndex ? "16px" : "6px", height: "6px", borderRadius: "100px", background: i === currentAdIndex ? "#c8952a" : "#e0d0b0", cursor: "pointer", transition: "all 0.3s ease" }} />
+              ))}
             </div>
-          ))}
-          <div onClick={handleAdvertiseClick} style={{ display: "flex", alignItems: "center", gap: "10px", background: "#fff", border: "1px dashed #f0e4c0", borderRadius: "10px", padding: "10px 16px", flexShrink: 0, cursor: "pointer" }}>
-            <div style={{ fontSize: "14px", color: "#c8952a" }}>➕ Advertise here</div>
+          </div>
+
+          {currentAd && (
+            <div onClick={() => handleAdClick(currentAd.id)} style={{ display: "flex", alignItems: "center", gap: "12px", background: "#fff", border: `1.5px solid ${currentAd.plan === 'PremierPlus' ? '#c8952a' : '#f0e4c0'}`, borderRadius: "12px", padding: "12px 16px", cursor: "pointer", position: "relative", transition: "all 0.3s ease" }}>
+              {currentAd.plan === 'PremierPlus' && (
+                <div style={{ position: "absolute", top: "-1px", right: "12px", background: "#c8952a", color: "#fff", fontSize: "9px", fontWeight: "700", padding: "2px 8px", borderRadius: "0 0 6px 6px", letterSpacing: "0.05em" }}>⭐ FEATURED</div>
+              )}
+              <div style={{ width: "48px", height: "48px", borderRadius: "10px", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: "#e8f4f0" }}>
+                <AdIcon ad={currentAd} size={48} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: "16px", fontWeight: "700", marginBottom: "2px" }}>{currentAd.business_name}</div>
+                <div style={{ fontSize: "13px", color: "#8a8a8a", marginBottom: "3px" }}>{currentAd.description}</div>
+                <div style={{ fontSize: "12px", color: "#4a8c5c", fontWeight: "500" }}>📍 {currentAd.location_name}</div>
+              </div>
+              <div style={{ fontSize: "20px", color: "#c8952a" }}>›</div>
+            </div>
+          )}
+
+          <div style={{ marginTop: "10px", textAlign: "center" }}>
+            <span onClick={handleAdvertiseClick} style={{ fontSize: "12px", color: "#c8952a", cursor: "pointer", textDecoration: "underline" }}>➕ Advertise here</span>
           </div>
         </div>
       )}
@@ -253,7 +284,6 @@ export default function Home() {
               <div onClick={() => router.push('/browse?category=Jobs')} style={{ fontSize: "15px", color: "#4a8c5c", cursor: "pointer", textDecoration: "underline" }}>See all →</div>
             </div>
 
-            {/* JOB 탭 필터 */}
             <div style={{ display: "flex", gap: "8px", overflowX: "auto", scrollbarWidth: "none", marginBottom: "14px", paddingBottom: "2px" }}>
               {jobTabs.map((tab) => (
                 <button key={tab.value} onClick={() => setActiveJobTab(tab.value)} style={{
