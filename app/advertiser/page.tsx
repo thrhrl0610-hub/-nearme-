@@ -202,7 +202,7 @@ export default function AdvertiserDashboard() {
 
       <aside className="adv-sidebar" style={{ width: '240px', background: '#1a3a2a', minHeight: '100vh', flexDirection: 'column', position: 'fixed', top: 0, left: 0, bottom: 0, display: 'none' }}>
         <div style={{ padding: '28px 24px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-          <div style={{ fontFamily: 'Georgia, serif', fontSize: '22px', color: '#fff' }}>
+          <div onClick={() => router.push('/')} style={{ fontFamily: 'Georgia, serif', fontSize: '22px', color: '#fff', cursor: 'pointer' }}>
             near<span style={{ color: '#7dcf9a', fontStyle: 'italic' }}>me</span>
           </div>
           <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Business Dashboard</div>
@@ -227,7 +227,7 @@ export default function AdvertiserDashboard() {
 
       <div className="adv-main" style={{ marginLeft: '0' }}>
         <div style={{ background: '#1a3a2a', padding: '0 24px', height: '58px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
-          <div style={{ fontFamily: 'Georgia, serif', fontSize: '20px', color: '#fff' }}>
+          <div onClick={() => router.push('/')} style={{ fontFamily: 'Georgia, serif', fontSize: '20px', color: '#fff', cursor: 'pointer' }}>
             near<span style={{ color: '#7dcf9a', fontStyle: 'italic' }}>me</span>
             <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginLeft: '8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Business</span>
           </div>
@@ -360,7 +360,7 @@ export default function AdvertiserDashboard() {
                 This is what locals will see in the Sponsored strip and feed.
               </div>
 
-              {/* PREVIEW - 흰 배경 */}
+              {/* PREVIEW */}
               <div style={{ background: '#fff', border: '1px solid #e8e4de', borderRadius: '14px', overflow: 'hidden', marginBottom: '20px' }}>
                 {posterPreview && <img src={posterPreview} alt="poster preview" style={{ width: '100%', display: 'block' }} />}
                 <div style={{ padding: '16px 18px' }}>
