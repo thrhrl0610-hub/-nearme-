@@ -79,6 +79,11 @@ export default function AdminPage() {
     setUsers(users.map(u => u.id === userId ? { ...u, is_verified: !current } : u))
   }
 
+  const handleExemptUser = async (userId: string, current: boolean) => {
+    await supabase.from('profiles').update({ is_exempt: !current }).eq('id', userId)
+    setUsers(users.map(u => u.id === userId ? { ...u, is_exempt: !current } : u))
+  }
+
   const handleDismissReport = async (id: string) => {
     await supabase.from('reports').delete().eq('id', id)
     setReports(reports.filter(r => r.id !== id))
@@ -147,7 +152,7 @@ export default function AdminPage() {
                       {ad.poster_url && <img src={ad.poster_url} alt="poster" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', display: 'block' }} />}
                       <div style={{ padding: '16px 20px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '12px' }}>
-                          <div style={{ width: '52px', height: '52px', borderRadius: '10px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: ad.hero_color || '#1a3a2a', flexShrink: 0 }}>
+                          <div style={{ width: '52px', height: '52px', borderRadius: '10px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#e8f4f0', flexShrink: 0 }}>
                             {ad.image_url ? <img src={ad.image_url} alt={ad.business_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '28px' }}>{ad.emoji}</span>}
                           </div>
                           <div style={{ flex: 1 }}>
@@ -157,7 +162,6 @@ export default function AdminPage() {
                               <span style={{ fontSize: '11px', background: '#fdf6e8', color: '#c8952a', padding: '2px 8px', borderRadius: '100px' }}>⏳ Pending</span>
                               <span style={{ fontSize: '11px', background: '#e8f4f0', color: '#1a3a2a', padding: '2px 8px', borderRadius: '100px' }}>📍 {ad.location_name}</span>
                               <span style={{ fontSize: '11px', background: '#e8f5e8', color: '#2d7a2d', padding: '2px 8px', borderRadius: '100px' }}>{ad.category}</span>
-                              {ad.hero_color && <span style={{ width: '16px', height: '16px', borderRadius: '50%', background: ad.hero_color, border: '1px solid #e8e4de', display: 'inline-block' }} />}
                             </div>
                           </div>
                         </div>
@@ -179,7 +183,7 @@ export default function AdminPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '28px' }}>
                   {activeAds.map((ad) => (
                     <div key={ad.id} style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8e4de', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-                      <div style={{ width: '48px', height: '48px', borderRadius: '10px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: ad.hero_color || '#1a3a2a', flexShrink: 0 }}>
+                      <div style={{ width: '48px', height: '48px', borderRadius: '10px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#e8f4f0', flexShrink: 0 }}>
                         {ad.image_url ? <img src={ad.image_url} alt={ad.business_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '24px' }}>{ad.emoji}</span>}
                       </div>
                       <div style={{ flex: 1 }}>
@@ -290,12 +294,20 @@ export default function AdminPage() {
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                     {u.is_verified && <span style={{ background: '#e8f5e8', color: '#2d7a2d', fontSize: '11px', padding: '2px 8px', borderRadius: '100px' }}>✅ Verified</span>}
                     {u.is_business && <span style={{ background: '#fdf6e8', color: '#c8952a', fontSize: '11px', padding: '2px 8px', borderRadius: '100px' }}>📣 Business</span>}
+                    {u.is_exempt && <span style={{ background: '#e8f4f0', color: '#1a3a2a', fontSize: '11px', padding: '2px 8px', borderRadius: '100px' }}>⭐ Exempt</span>}
                     <span style={{ fontSize: '11px', color: '#8a8a8a' }}>{new Date(u.created_at).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                   </div>
                 </div>
-                <button onClick={() => handleVerifyUser(u.id, u.is_verified)} style={{ background: u.is_verified ? '#fde8e8' : '#e8f5e8', color: u.is_verified ? '#c0392b' : '#2d7a2d', border: 'none', borderRadius: '8px', padding: '7px 14px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
-                  {u.is_verified ? 'Unverify' : 'Verify'}
-                </button>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button onClick={() => handleVerifyUser(u.id, u.is_verified)} style={{ background: u.is_verified ? '#fde8e8' : '#e8f5e8', color: u.is_verified ? '#c0392b' : '#2d7a2d', border: 'none', borderRadius: '8px', padding: '7px 12px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
+                    {u.is_verified ? 'Unverify' : 'Verify'}
+                  </button>
+                  {u.is_business && (
+                    <button onClick={() => handleExemptUser(u.id, u.is_exempt)} style={{ background: u.is_exempt ? '#fdf6e8' : '#e8f4f0', color: u.is_exempt ? '#c8952a' : '#1a3a2a', border: 'none', borderRadius: '8px', padding: '7px 12px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
+                      {u.is_exempt ? 'Remove exempt' : '⭐ Set exempt'}
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
