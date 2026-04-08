@@ -118,9 +118,8 @@ export default function Home() {
   }
 
   const jobTabs = [
-    { label: '🔴 Urgent', value: 'Urgent' },
     { label: '📋 All', value: 'All' },
-    { label: '☕ Casual', value: 'Casual' },
+    { label: '🔴 Urgent', value: 'Urgent' },
     { label: '⏰ Part-time', value: 'Part-time' },
     { label: '💼 Full-time', value: 'Full-time' },
   ]
