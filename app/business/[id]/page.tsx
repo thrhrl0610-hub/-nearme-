@@ -38,7 +38,7 @@ export default function BusinessPage() {
 
   return (
     <main style={{ fontFamily: "'DM Sans', sans-serif", background: "#faf8f4", minHeight: "100vh", paddingBottom: "80px" }}>
-      {/* NAV - 흰 배경 + 비즈니스 이름 */}
+      {/* NAV */}
       <nav style={{ background: "#fff", padding: "0 20px", height: "58px", display: "flex", alignItems: "center", gap: "12px", borderBottom: "1px solid #e8e4de" }}>
         <button onClick={() => router.back()} style={{ background: "#f0f0f0", border: "none", borderRadius: "100px", padding: "7px 14px", color: "#1a1a1a", fontSize: "13px", cursor: "pointer", whiteSpace: "nowrap" }}>← Back</button>
         <div style={{ flex: 1, textAlign: "center" }}>
@@ -49,7 +49,7 @@ export default function BusinessPage() {
       </nav>
 
       <div style={{ padding: "16px 16px 0" }}>
-        {/* 포스터 - 여백있는 둥근 카드 */}
+        {/* 포스터 */}
         {ad.poster_url ? (
           <div style={{ borderRadius: "18px", overflow: "hidden", marginBottom: "16px", boxShadow: "0 2px 16px rgba(0,0,0,0.10)" }}>
             <img src={ad.poster_url} alt={`${ad.business_name} poster`} style={{ width: "100%", display: "block" }} />
@@ -67,15 +67,31 @@ export default function BusinessPage() {
           </div>
         )}
 
-        {/* 비즈니스 태그라인 + 태그 */}
+        {/* 태그라인 + 태그 */}
         <div style={{ background: "#fff", borderRadius: "14px", border: "1px solid #e8e4de", padding: "16px 18px", marginBottom: "12px" }}>
-          <div style={{ fontSize: "15px", fontWeight: "600", color: "#1a1a1a", marginBottom: "6px" }}>{ad.description}</div>
+          <div style={{ fontSize: "15px", fontWeight: "600", color: "#1a1a1a", marginBottom: "8px" }}>{ad.description}</div>
           <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
             <span style={{ background: "#e8f4f0", borderRadius: "100px", padding: "4px 12px", color: "#1a3a2a", fontSize: "12px", fontWeight: "500" }}>📍 {ad.location_name}</span>
             {ad.category && <span style={{ background: "#e8f4f0", borderRadius: "100px", padding: "4px 12px", color: "#1a3a2a", fontSize: "12px", fontWeight: "500" }}>{ad.category}</span>}
             <span style={{ background: "#fdf6e8", borderRadius: "100px", padding: "4px 12px", color: "#c8952a", fontSize: "12px", fontWeight: "500" }}>📣 Sponsored</span>
           </div>
         </div>
+
+        {/* 링크 버튼들 */}
+        {(ad.website_url || ad.maps_url) && (
+          <div style={{ display: "flex", gap: "10px", marginBottom: "12px" }}>
+            {ad.website_url && (
+              <a href={ad.website_url} target="_blank" rel="noopener noreferrer" style={{ flex: 1, background: "#1a3a2a", color: "#fff", borderRadius: "12px", padding: "14px", textAlign: "center", textDecoration: "none", fontSize: "14px", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                🌐 Visit Website
+              </a>
+            )}
+            {ad.maps_url && (
+              <a href={ad.maps_url} target="_blank" rel="noopener noreferrer" style={{ flex: 1, background: "#fff", color: "#1a3a2a", borderRadius: "12px", padding: "14px", textAlign: "center", textDecoration: "none", fontSize: "14px", fontWeight: "600", border: "1.5px solid #e8e4de", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                📍 View on Maps
+              </a>
+            )}
+          </div>
+        )}
 
         {/* 상세 설명 */}
         {ad.long_description && (

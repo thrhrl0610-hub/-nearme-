@@ -24,6 +24,8 @@ export default function AdvertiserDashboard() {
   const [posterImage, setPosterImage] = useState<File | null>(null)
   const [posterPreview, setPosterPreview] = useState<string | null>(null)
   const [heroColor, setHeroColor] = useState('#1a3a2a')
+  const [websiteUrl, setWebsiteUrl] = useState('')
+  const [mapsUrl, setMapsUrl] = useState('')
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState('')
 
@@ -63,6 +65,8 @@ export default function AdvertiserDashboard() {
         if (ad.image_url) { setLogoPreview(ad.image_url); setUseImage(true) }
         if (ad.poster_url) setPosterPreview(ad.poster_url)
         if (ad.hero_color) setHeroColor(ad.hero_color)
+        if (ad.website_url) setWebsiteUrl(ad.website_url)
+        if (ad.maps_url) setMapsUrl(ad.maps_url)
 
         const adIds = adsData.map((a: any) => a.id)
         const oneWeekAgo = new Date()
@@ -148,6 +152,8 @@ export default function AdvertiserDashboard() {
       image_url: useImage ? image_url : null,
       poster_url,
       hero_color: heroColor,
+      website_url: websiteUrl || null,
+      maps_url: mapsUrl || null,
       user_id: user.id,
       is_active: false,
       status: 'pending',
@@ -306,7 +312,6 @@ export default function AdvertiserDashboard() {
                           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                             <span style={{ fontSize: '11px', background: '#e8f5e8', color: '#2d7a2d', padding: '2px 8px', borderRadius: '100px' }}>{ad.category}</span>
                             <span style={{ fontSize: '11px', background: '#e8f4f0', color: '#1a3a2a', padding: '2px 8px', borderRadius: '100px' }}>📍 {ad.location_name}</span>
-                            <span style={{ fontSize: '11px', background: '#e8f4f0', color: '#1a3a2a', padding: '2px 8px', borderRadius: '100px' }}>📡 {ad.radius_km || 10}km radius</span>
                             <span style={{ fontSize: '11px', background: ad.status === 'active' ? '#eaf5ec' : '#fdf6e8', color: ad.status === 'active' ? '#2d7a3a' : '#c8952a', padding: '2px 8px', borderRadius: '100px' }}>
                               {ad.status === 'active' ? '● Live' : '⏳ Pending'}
                             </span>
@@ -463,17 +468,25 @@ export default function AdvertiserDashboard() {
                 <input value={locationName} onChange={e => setLocationName(e.target.value)} placeholder="e.g. Silverdale" style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
               </div>
 
-              <div style={{ marginBottom: '24px' }}>
+              <div style={{ marginBottom: '14px' }}>
                 <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>
                   About your business <span style={{ color: '#8a8a8a', fontWeight: '400' }}>(optional)</span>
                 </label>
-                <textarea
-                  value={longDescription}
-                  onChange={e => setLongDescription(e.target.value)}
-                  placeholder="Tell locals about your business — hours, specialties, story..."
-                  rows={4}
-                  style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', resize: 'vertical', fontFamily: "'DM Sans', sans-serif" }}
-                />
+                <textarea value={longDescription} onChange={e => setLongDescription(e.target.value)} placeholder="Tell locals about your business — hours, specialties, story..." rows={4} style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', resize: 'vertical', fontFamily: "'DM Sans', sans-serif" }} />
+              </div>
+
+              {/* 링크 섹션 */}
+              <div style={{ marginBottom: '20px', background: '#fff', border: '1px solid #e8e4de', borderRadius: '12px', padding: '16px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '4px' }}>🔗 Links <span style={{ fontWeight: '400', color: '#8a8a8a' }}>(optional)</span></label>
+                <div style={{ fontSize: '12px', color: '#8a8a8a', marginBottom: '14px' }}>Add your website or Google Maps link — locals can tap to visit.</div>
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ fontSize: '12px', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>🌐 Website URL</label>
+                  <input value={websiteUrl} onChange={e => setWebsiteUrl(e.target.value)} placeholder="e.g. https://victoriasushi.co.nz" style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '10px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>📍 Google Maps URL</label>
+                  <input value={mapsUrl} onChange={e => setMapsUrl(e.target.value)} placeholder="e.g. https://maps.google.com/..." style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '10px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
               </div>
 
               {saveMsg && (
