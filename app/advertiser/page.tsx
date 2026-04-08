@@ -14,6 +14,7 @@ export default function AdvertiserDashboard() {
 
   const [bizName, setBizName] = useState('')
   const [description, setDescription] = useState('')
+  const [longDescription, setLongDescription] = useState('')
   const [category, setCategory] = useState('Food')
   const [locationName, setLocationName] = useState('')
   const [emoji, setEmoji] = useState('🏪')
@@ -55,6 +56,7 @@ export default function AdvertiserDashboard() {
         const ad = adsData[0]
         if (ad.business_name) setBizName(ad.business_name)
         if (ad.description) setDescription(ad.description)
+        if (ad.long_description) setLongDescription(ad.long_description)
         if (ad.category) setCategory(ad.category)
         if (ad.location_name) setLocationName(ad.location_name)
         if (ad.emoji) setEmoji(ad.emoji)
@@ -134,12 +136,12 @@ export default function AdvertiserDashboard() {
       if (url) poster_url = url
     }
 
-    // 광고주 위치 저장
     const loc = await getLocation()
 
     const adData: any = {
       business_name: bizName,
       description,
+      long_description: longDescription,
       category,
       location_name: locationName,
       emoji: useImage ? null : emoji,
@@ -333,9 +335,9 @@ export default function AdvertiserDashboard() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
                 {[
-                  { name: 'Starter', price: '$49', desc: 'Perfect for testing the waters', features: ['Sponsored Strip slot', 'Up to 5 km radius', '~1,200 local users/mo', 'Basic analytics'], popular: false, radius: 5 },
-                  { name: 'Growth', price: '$199', desc: 'For businesses ready to grow', features: ['Strip + Feed Ad placements', 'Up to 20 km radius', '~8,000 local users/mo', 'Full analytics + CTR', 'Priority placement'], popular: true, radius: 20 },
-                  { name: 'Premier', price: '$499', desc: 'Maximum local visibility', features: ['All placements incl. Banner', 'Up to 50 km radius', '~25,000 local users/mo', 'Advanced analytics', 'Dedicated support'], popular: false, radius: 50 },
+                  { name: 'Starter', price: '$49', desc: 'Perfect for testing the waters', features: ['Sponsored Strip slot', 'Up to 5 km radius', '~1,200 local users/mo', 'Basic analytics'], popular: false },
+                  { name: 'Growth', price: '$199', desc: 'For businesses ready to grow', features: ['Strip + Feed Ad placements', 'Up to 20 km radius', '~8,000 local users/mo', 'Full analytics + CTR', 'Priority placement'], popular: true },
+                  { name: 'Premier', price: '$499', desc: 'Maximum local visibility', features: ['All placements incl. Banner', 'Up to 50 km radius', '~25,000 local users/mo', 'Advanced analytics', 'Dedicated support'], popular: false },
                 ].map((plan) => (
                   <div key={plan.name} style={{ background: '#fff', border: `1.5px solid ${plan.popular ? '#1a3a2a' : '#e8e4de'}`, borderRadius: '14px', padding: '20px', position: 'relative' }}>
                     {plan.popular && <div style={{ position: 'absolute', top: '-1px', left: '50%', transform: 'translateX(-50%)', background: '#1a3a2a', color: '#fff', fontSize: '10px', fontWeight: '700', padding: '3px 12px', borderRadius: '0 0 8px 8px' }}>Most popular</div>}
@@ -456,9 +458,22 @@ export default function AdvertiserDashboard() {
                 </div>
               </div>
 
-              <div style={{ marginBottom: '24px' }}>
+              <div style={{ marginBottom: '14px' }}>
                 <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>Suburb / location</label>
                 <input value={locationName} onChange={e => setLocationName(e.target.value)} placeholder="e.g. Silverdale" style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>
+                  About your business <span style={{ color: '#8a8a8a', fontWeight: '400' }}>(optional)</span>
+                </label>
+                <textarea
+                  value={longDescription}
+                  onChange={e => setLongDescription(e.target.value)}
+                  placeholder="Tell locals about your business — hours, specialties, story..."
+                  rows={4}
+                  style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', resize: 'vertical', fontFamily: "'DM Sans', sans-serif" }}
+                />
               </div>
 
               {saveMsg && (
