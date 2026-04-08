@@ -1,20 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
-import webpush from 'web-push'
+import Stripe from 'stripe'
 
-if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
-  webpush.setVapidDetails(
-    'mailto:thrhrl0610@gmail.com',
-    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY
-  )
-}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' })
 
 export async function POST(req: NextRequest) {
-  const { subscription, title, body, url } = await req.json()
-  try {
-    await webpush.sendNotification(subscription, JSON.stringify({ title, body, url }))
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to send push' }, { status: 500 })
+  const { planName } = await req.json()
+
+  const priceMap: Record<string, number> = {
+    'Starter': 4900,
+    'Growth': 19900,
+    'Premier': 49900,
   }
+
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ['card'],
+    mode: 'subscription',
+    line_items: [{
+      price_data: {
+        currency: 'nzd',
+        product_data: { name: `NearMe ${planName} Plan` },
+        unit_amount: priceMap[planName] || 4900,
+        recurring: { interval: 'month' },
+      },
+      quantity: 1,
+    }],
+    success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/advertiser?success=true`,
+    cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/advertiser`,
+  })
+
+  return NextResponse.json({ url: session.url })
 }
