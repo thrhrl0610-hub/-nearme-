@@ -11,6 +11,8 @@ export default function AdvertiserDashboard() {
   const [myAds, setMyAds] = useState<any[]>([])
   const [user, setUser] = useState<any>(null)
   const [stats, setStats] = useState({ clicks: 0, views: 0 })
+  const [isExempt, setIsExempt] = useState(false)
+  const [hasPaid, setHasPaid] = useState(false)
 
   const [bizName, setBizName] = useState('')
   const [description, setDescription] = useState('')
@@ -34,11 +36,12 @@ export default function AdvertiserDashboard() {
       if (!user) { router.push('/auth'); return }
       setUser(user)
 
-      const { data: profile } = await supabase.from('profiles').select('is_business, business_name, suburb').eq('id', user.id).single()
+      const { data: profile } = await supabase.from('profiles').select('is_business, business_name, suburb, is_exempt').eq('id', user.id).single()
       if (!profile?.is_business) { router.push('/'); return }
 
       if (profile.business_name) setBizName(profile.business_name)
       if (profile.suburb) setLocationName(profile.suburb)
+      if (profile.is_exempt) setIsExempt(true)
 
       const { data: adsData } = await supabase.from('ads').select('*').eq('user_id', user.id)
       if (adsData && adsData.length > 0) {
@@ -54,6 +57,7 @@ export default function AdvertiserDashboard() {
         if (ad.poster_url) setPosterPreview(ad.poster_url)
         if (ad.website_url) setWebsiteUrl(ad.website_url)
         if (ad.maps_url) setMapsUrl(ad.maps_url)
+        if (ad.paid_until && new Date(ad.paid_until) > new Date()) setHasPaid(true)
 
         const adIds = adsData.map((a: any) => a.id)
         const oneWeekAgo = new Date()
@@ -70,6 +74,8 @@ export default function AdvertiserDashboard() {
     checkUser()
     if (window.location.search.includes('success=true')) setSuccess(true)
   }, [])
+
+  const canCreateAd = isExempt || hasPaid
 
   const handlePlanClick = async (planName: string) => {
     const res = await fetch('/api/create-ad-checkout', {
@@ -111,6 +117,10 @@ export default function AdvertiserDashboard() {
   }
 
   const handleCreateAd = async () => {
+    if (!canCreateAd) {
+      setSaveMsg('Please subscribe to a plan to create an ad.')
+      return
+    }
     if (!bizName || !description || !locationName) { setSaveMsg('Please fill in all fields'); return }
     setSaving(true)
     setSaveMsg('')
@@ -360,8 +370,18 @@ export default function AdvertiserDashboard() {
                 This is what locals will see in the Sponsored strip and feed.
               </div>
 
+              {/* 결제 안 한 사람한테 블로커 */}
+              {!canCreateAd && (
+                <div style={{ background: '#fdf6e8', border: '1.5px solid #f0e4c0', borderRadius: '14px', padding: '28px', textAlign: 'center', marginBottom: '24px' }}>
+                  <div style={{ fontSize: '36px', marginBottom: '10px' }}>💳</div>
+                  <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px' }}>Subscribe to create an ad</div>
+                  <div style={{ fontSize: '14px', color: '#8a8a8a', marginBottom: '20px' }}>Choose a plan from the Dashboard tab to get started.</div>
+                  <button onClick={() => setActiveTab('dashboard')} style={{ background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '10px 28px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>View plans →</button>
+                </div>
+              )}
+
               {/* PREVIEW */}
-              <div style={{ background: '#fff', border: '1px solid #e8e4de', borderRadius: '14px', overflow: 'hidden', marginBottom: '20px' }}>
+              <div style={{ background: '#fff', border: '1px solid #e8e4de', borderRadius: '14px', overflow: 'hidden', marginBottom: '20px', opacity: canCreateAd ? 1 : 0.4, pointerEvents: canCreateAd ? 'auto' : 'none' }}>
                 {posterPreview && <img src={posterPreview} alt="poster preview" style={{ width: '100%', display: 'block' }} />}
                 <div style={{ padding: '16px 18px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
@@ -382,102 +402,104 @@ export default function AdvertiserDashboard() {
                 <div style={{ padding: '6px 18px 12px', fontSize: '10px', color: '#c8c8c8', textTransform: 'uppercase', letterSpacing: '1px' }}>Preview</div>
               </div>
 
-              {/* BRAND ICON */}
-              <div style={{ marginBottom: '20px', background: '#fff', border: '1px solid #e8e4de', borderRadius: '12px', padding: '16px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '12px' }}>Brand icon</label>
-                <div style={{ display: 'flex', background: '#f0f0f0', borderRadius: '100px', padding: '3px', marginBottom: '14px', gap: '3px' }}>
-                  <button onClick={() => setUseImage(false)} style={{ flex: 1, border: 'none', borderRadius: '100px', padding: '7px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', background: !useImage ? '#fff' : 'transparent', color: !useImage ? '#1a1a1a' : '#8a8a8a' }}>😊 Emoji</button>
-                  <button onClick={() => setUseImage(true)} style={{ flex: 1, border: 'none', borderRadius: '100px', padding: '7px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', background: useImage ? '#fff' : 'transparent', color: useImage ? '#1a1a1a' : '#8a8a8a' }}>🖼️ Logo image</button>
+              <div style={{ opacity: canCreateAd ? 1 : 0.4, pointerEvents: canCreateAd ? 'auto' : 'none' }}>
+                {/* BRAND ICON */}
+                <div style={{ marginBottom: '20px', background: '#fff', border: '1px solid #e8e4de', borderRadius: '12px', padding: '16px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '12px' }}>Brand icon</label>
+                  <div style={{ display: 'flex', background: '#f0f0f0', borderRadius: '100px', padding: '3px', marginBottom: '14px', gap: '3px' }}>
+                    <button onClick={() => setUseImage(false)} style={{ flex: 1, border: 'none', borderRadius: '100px', padding: '7px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', background: !useImage ? '#fff' : 'transparent', color: !useImage ? '#1a1a1a' : '#8a8a8a' }}>😊 Emoji</button>
+                    <button onClick={() => setUseImage(true)} style={{ flex: 1, border: 'none', borderRadius: '100px', padding: '7px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', background: useImage ? '#fff' : 'transparent', color: useImage ? '#1a1a1a' : '#8a8a8a' }}>🖼️ Logo image</button>
+                  </div>
+                  {!useImage ? (
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {['🏪', '🍜', '🍕', '☕', '🏠', '💆', '🛒', '💇', '🏋️', '🐾', '🌿', '🔧', '📚', '🎨', '🧁', '🍣'].map((e) => (
+                        <button key={e} onClick={() => setEmoji(e)} style={{ fontSize: '22px', width: '40px', height: '40px', borderRadius: '8px', border: emoji === e ? '2px solid #1a3a2a' : '1.5px solid #e8e4de', background: emoji === e ? '#e8f4f0' : '#fff', cursor: 'pointer' }}>{e}</button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div>
+                      <div onClick={() => document.getElementById('logoInput')?.click()} style={{ border: '2px dashed #e8e4de', borderRadius: '10px', padding: '20px', textAlign: 'center', cursor: 'pointer', background: '#faf8f4' }}>
+                        {logoPreview
+                          ? <img src={logoPreview} alt="logo" style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '10px', margin: '0 auto', display: 'block' }} />
+                          : <div><div style={{ fontSize: '32px', marginBottom: '8px' }}>🖼️</div><div style={{ fontSize: '13px', color: '#8a8a8a' }}>Tap to upload your logo</div></div>
+                        }
+                      </div>
+                      <input id="logoInput" type="file" accept="image/*" onChange={handleLogoChange} style={{ display: 'none' }} />
+                      {logoPreview && <button onClick={() => { setLogoPreview(null); setLogoImage(null); setUseImage(false) }} style={{ marginTop: '8px', background: 'transparent', border: 'none', fontSize: '12px', color: '#c0392b', cursor: 'pointer', textDecoration: 'underline' }}>Remove</button>}
+                    </div>
+                  )}
                 </div>
-                {!useImage ? (
+
+                {/* POSTER */}
+                <div style={{ marginBottom: '20px', background: '#fff', border: '1px solid #e8e4de', borderRadius: '12px', padding: '16px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '4px' }}>📸 Business poster <span style={{ fontWeight: '400', color: '#8a8a8a' }}>(optional)</span></label>
+                  <div style={{ fontSize: '12px', color: '#8a8a8a', marginBottom: '12px' }}>Shown full-width on your business page. Use a banner, menu, or promo image.</div>
+                  <div onClick={() => document.getElementById('posterInput')?.click()} style={{ border: '2px dashed #e8e4de', borderRadius: '10px', overflow: 'hidden', cursor: 'pointer', background: '#faf8f4' }}>
+                    {posterPreview
+                      ? <img src={posterPreview} alt="poster" style={{ width: '100%', objectFit: 'cover', display: 'block' }} />
+                      : <div style={{ padding: '28px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '36px', marginBottom: '8px' }}>🖼️</div>
+                          <div style={{ fontSize: '13px', color: '#8a8a8a' }}>Tap to upload a poster or banner</div>
+                          <div style={{ fontSize: '11px', color: '#c8c8c8', marginTop: '4px' }}>Recommended: 1200×600px</div>
+                        </div>
+                    }
+                  </div>
+                  <input id="posterInput" type="file" accept="image/*" onChange={handlePosterChange} style={{ display: 'none' }} />
+                  {posterPreview && <button onClick={() => { setPosterPreview(null); setPosterImage(null) }} style={{ marginTop: '8px', background: 'transparent', border: 'none', fontSize: '12px', color: '#c0392b', cursor: 'pointer', textDecoration: 'underline' }}>Remove poster</button>}
+                </div>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>Business name</label>
+                  <input value={bizName} onChange={e => setBizName(e.target.value)} placeholder="e.g. Pho Silverdale" style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>Tagline / description</label>
+                  <input value={description} onChange={e => setDescription(e.target.value)} placeholder="e.g. Lunch special $14.90" style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>Category</label>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {['🏪', '🍜', '🍕', '☕', '🏠', '💆', '🛒', '💇', '🏋️', '🐾', '🌿', '🔧', '📚', '🎨', '🧁', '🍣'].map((e) => (
-                      <button key={e} onClick={() => setEmoji(e)} style={{ fontSize: '22px', width: '40px', height: '40px', borderRadius: '8px', border: emoji === e ? '2px solid #1a3a2a' : '1.5px solid #e8e4de', background: emoji === e ? '#e8f4f0' : '#fff', cursor: 'pointer' }}>{e}</button>
+                    {['Food', 'Retail', 'Wellness', 'Real Estate', 'Services', 'Other'].map((cat) => (
+                      <button key={cat} onClick={() => setCategory(cat)} style={{ border: category === cat ? 'none' : '1.5px solid #e8e4de', borderRadius: '100px', padding: '6px 14px', fontSize: '13px', background: category === cat ? '#1a3a2a' : '#fff', color: category === cat ? '#fff' : '#4a4a4a', cursor: 'pointer' }}>{cat}</button>
                     ))}
                   </div>
-                ) : (
-                  <div>
-                    <div onClick={() => document.getElementById('logoInput')?.click()} style={{ border: '2px dashed #e8e4de', borderRadius: '10px', padding: '20px', textAlign: 'center', cursor: 'pointer', background: '#faf8f4' }}>
-                      {logoPreview
-                        ? <img src={logoPreview} alt="logo" style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '10px', margin: '0 auto', display: 'block' }} />
-                        : <div><div style={{ fontSize: '32px', marginBottom: '8px' }}>🖼️</div><div style={{ fontSize: '13px', color: '#8a8a8a' }}>Tap to upload your logo</div></div>
-                      }
-                    </div>
-                    <input id="logoInput" type="file" accept="image/*" onChange={handleLogoChange} style={{ display: 'none' }} />
-                    {logoPreview && <button onClick={() => { setLogoPreview(null); setLogoImage(null); setUseImage(false) }} style={{ marginTop: '8px', background: 'transparent', border: 'none', fontSize: '12px', color: '#c0392b', cursor: 'pointer', textDecoration: 'underline' }}>Remove</button>}
+                </div>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>Suburb / location</label>
+                  <input value={locationName} onChange={e => setLocationName(e.target.value)} placeholder="e.g. Silverdale" style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>
+                    About your business <span style={{ color: '#8a8a8a', fontWeight: '400' }}>(optional)</span>
+                  </label>
+                  <textarea value={longDescription} onChange={e => setLongDescription(e.target.value)} placeholder="Tell locals about your business — hours, specialties, story..." rows={4} style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', resize: 'vertical', fontFamily: "'DM Sans', sans-serif" }} />
+                </div>
+
+                <div style={{ marginBottom: '24px', background: '#fff', border: '1px solid #e8e4de', borderRadius: '12px', padding: '16px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '4px' }}>🔗 Links <span style={{ fontWeight: '400', color: '#8a8a8a' }}>(optional)</span></label>
+                  <div style={{ fontSize: '12px', color: '#8a8a8a', marginBottom: '14px' }}>Add your website or Google Maps link — locals can tap to visit.</div>
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ fontSize: '12px', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>🌐 Website URL</label>
+                    <input value={websiteUrl} onChange={e => setWebsiteUrl(e.target.value)} placeholder="e.g. https://victoriasushi.co.nz" style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '10px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
                   </div>
+                  <div>
+                    <label style={{ fontSize: '12px', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>📍 Google Maps URL</label>
+                    <input value={mapsUrl} onChange={e => setMapsUrl(e.target.value)} placeholder="e.g. https://maps.google.com/..." style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '10px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+                  </div>
+                </div>
+
+                {saveMsg && (
+                  <div style={{ marginBottom: '14px', padding: '10px 14px', background: saveMsg.includes('Error') || saveMsg.includes('Please subscribe') ? '#fde8e8' : '#e8f5e8', borderRadius: '8px', fontSize: '13px', color: saveMsg.includes('Error') || saveMsg.includes('Please subscribe') ? '#c0392b' : '#2d7a2d' }}>{saveMsg}</div>
                 )}
+
+                <button onClick={handleCreateAd} disabled={saving || !canCreateAd} style={{ width: '100%', background: canCreateAd ? '#1a3a2a' : '#ccc', color: '#fff', border: 'none', borderRadius: '100px', padding: '13px', fontSize: '15px', fontWeight: '600', cursor: canCreateAd ? 'pointer' : 'not-allowed' }}>
+                  {saving ? 'Saving...' : myAds.length > 0 ? 'Update ad' : 'Create ad'}
+                </button>
               </div>
-
-              {/* POSTER */}
-              <div style={{ marginBottom: '20px', background: '#fff', border: '1px solid #e8e4de', borderRadius: '12px', padding: '16px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '4px' }}>📸 Business poster <span style={{ fontWeight: '400', color: '#8a8a8a' }}>(optional)</span></label>
-                <div style={{ fontSize: '12px', color: '#8a8a8a', marginBottom: '12px' }}>Shown full-width on your business page. Use a banner, menu, or promo image.</div>
-                <div onClick={() => document.getElementById('posterInput')?.click()} style={{ border: '2px dashed #e8e4de', borderRadius: '10px', overflow: 'hidden', cursor: 'pointer', background: '#faf8f4' }}>
-                  {posterPreview
-                    ? <img src={posterPreview} alt="poster" style={{ width: '100%', objectFit: 'cover', display: 'block' }} />
-                    : <div style={{ padding: '28px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '36px', marginBottom: '8px' }}>🖼️</div>
-                        <div style={{ fontSize: '13px', color: '#8a8a8a' }}>Tap to upload a poster or banner</div>
-                        <div style={{ fontSize: '11px', color: '#c8c8c8', marginTop: '4px' }}>Recommended: 1200×600px</div>
-                      </div>
-                  }
-                </div>
-                <input id="posterInput" type="file" accept="image/*" onChange={handlePosterChange} style={{ display: 'none' }} />
-                {posterPreview && <button onClick={() => { setPosterPreview(null); setPosterImage(null) }} style={{ marginTop: '8px', background: 'transparent', border: 'none', fontSize: '12px', color: '#c0392b', cursor: 'pointer', textDecoration: 'underline' }}>Remove poster</button>}
-              </div>
-
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>Business name</label>
-                <input value={bizName} onChange={e => setBizName(e.target.value)} placeholder="e.g. Pho Silverdale" style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
-              </div>
-
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>Tagline / description</label>
-                <input value={description} onChange={e => setDescription(e.target.value)} placeholder="e.g. Lunch special $14.90" style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
-              </div>
-
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>Category</label>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {['Food', 'Retail', 'Wellness', 'Real Estate', 'Services', 'Other'].map((cat) => (
-                    <button key={cat} onClick={() => setCategory(cat)} style={{ border: category === cat ? 'none' : '1.5px solid #e8e4de', borderRadius: '100px', padding: '6px 14px', fontSize: '13px', background: category === cat ? '#1a3a2a' : '#fff', color: category === cat ? '#fff' : '#4a4a4a', cursor: 'pointer' }}>{cat}</button>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>Suburb / location</label>
-                <input value={locationName} onChange={e => setLocationName(e.target.value)} placeholder="e.g. Silverdale" style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
-              </div>
-
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>
-                  About your business <span style={{ color: '#8a8a8a', fontWeight: '400' }}>(optional)</span>
-                </label>
-                <textarea value={longDescription} onChange={e => setLongDescription(e.target.value)} placeholder="Tell locals about your business — hours, specialties, story..." rows={4} style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', resize: 'vertical', fontFamily: "'DM Sans', sans-serif" }} />
-              </div>
-
-              <div style={{ marginBottom: '24px', background: '#fff', border: '1px solid #e8e4de', borderRadius: '12px', padding: '16px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '4px' }}>🔗 Links <span style={{ fontWeight: '400', color: '#8a8a8a' }}>(optional)</span></label>
-                <div style={{ fontSize: '12px', color: '#8a8a8a', marginBottom: '14px' }}>Add your website or Google Maps link — locals can tap to visit.</div>
-                <div style={{ marginBottom: '12px' }}>
-                  <label style={{ fontSize: '12px', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>🌐 Website URL</label>
-                  <input value={websiteUrl} onChange={e => setWebsiteUrl(e.target.value)} placeholder="e.g. https://victoriasushi.co.nz" style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '10px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '12px', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>📍 Google Maps URL</label>
-                  <input value={mapsUrl} onChange={e => setMapsUrl(e.target.value)} placeholder="e.g. https://maps.google.com/..." style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '10px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
-                </div>
-              </div>
-
-              {saveMsg && (
-                <div style={{ marginBottom: '14px', padding: '10px 14px', background: saveMsg.includes('Error') ? '#fde8e8' : '#e8f5e8', borderRadius: '8px', fontSize: '13px', color: saveMsg.includes('Error') ? '#c0392b' : '#2d7a2d' }}>{saveMsg}</div>
-              )}
-
-              <button onClick={handleCreateAd} disabled={saving} style={{ width: '100%', background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '13px', fontSize: '15px', fontWeight: '600', cursor: 'pointer' }}>
-                {saving ? 'Saving...' : myAds.length > 0 ? 'Update ad' : 'Create ad'}
-              </button>
             </div>
           )}
         </div>
