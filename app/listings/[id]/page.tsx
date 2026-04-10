@@ -9,6 +9,7 @@ export default function ListingPage() {
   const router = useRouter()
   const [listing, setListing] = useState<any>(null)
   const [seller, setSeller] = useState<any>(null)
+  const [sellerReviews, setSellerReviews] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -21,6 +22,8 @@ export default function ListingPage() {
   const [showReport, setShowReport] = useState(false)
   const [reportReason, setReportReason] = useState('')
   const [reportSent, setReportSent] = useState(false)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [markingSold, setMarkingSold] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -29,6 +32,8 @@ export default function ListingPage() {
         setListing(data)
         const { data: sellerData } = await supabase.from('profiles').select('*').eq('id', data.user_id).single()
         if (sellerData) setSeller(sellerData)
+        const { data: sellerReviewsData } = await supabase.from('reviews').select('*').eq('seller_id', data.user_id)
+        if (sellerReviewsData) setSellerReviews(sellerReviewsData)
       }
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
@@ -65,6 +70,15 @@ export default function ListingPage() {
     }
   }
 
+  const handleMarkSold = async () => {
+    if (!user || user.id !== listing.user_id) return
+    setMarkingSold(true)
+    const newSoldState = !listing.is_sold
+    await supabase.from('listings').update({ is_sold: newSoldState }).eq('id', id)
+    setListing({ ...listing, is_sold: newSoldState })
+    setMarkingSold(false)
+  }
+
   const handleReview = async () => {
     if (!user) { router.push('/auth'); return }
     setSubmitting(true)
@@ -95,6 +109,9 @@ export default function ListingPage() {
   }
 
   const avgRating = reviews.length > 0 ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1) : null
+  const sellerAvgRating = sellerReviews.length > 0 ? (sellerReviews.reduce((sum, r) => sum + r.rating, 0) / sellerReviews.length).toFixed(1) : null
+
+  const allImages = listing ? [listing.image_url, ...(listing.extra_images || [])].filter(Boolean) : []
 
   if (loading) return <div style={{ minHeight: '100vh', background: '#faf8f4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a8a8a' }}>Loading...</div>
   if (!listing) return <div style={{ minHeight: '100vh', background: '#faf8f4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a8a8a' }}>Listing not found</div>
@@ -117,15 +134,47 @@ export default function ListingPage() {
       </nav>
 
       <div style={{ maxWidth: '680px', margin: '0 auto', padding: '24px' }}>
-        <div style={{ width: '100%', aspectRatio: '4/3', background: '#e8f4f0', borderRadius: '16px', marginBottom: '24px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '80px' }}>
-          {listing.image_url
-            ? <img src={listing.image_url} alt={listing.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : '📦'}
+
+        {/* 이미지 갤러리 */}
+        <div style={{ position: 'relative', width: '100%', aspectRatio: '4/3', background: '#e8f4f0', borderRadius: '16px', marginBottom: '12px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '80px' }}>
+          {allImages.length > 0
+            ? <img src={allImages[currentImageIndex]} alt={listing.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            : '📦'
+          }
+          {listing.is_sold && (
+            <div style={{ position: 'absolute', top: '16px', left: '16px', background: '#c0392b', color: '#fff', fontSize: '14px', fontWeight: '700', padding: '6px 16px', borderRadius: '100px' }}>SOLD</div>
+          )}
+          {allImages.length > 1 && (
+            <>
+              <button onClick={() => setCurrentImageIndex(prev => (prev - 1 + allImages.length) % allImages.length)} style={{ position: 'absolute', left: '12px', background: 'rgba(0,0,0,0.4)', color: '#fff', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', fontSize: '16px' }}>‹</button>
+              <button onClick={() => setCurrentImageIndex(prev => (prev + 1) % allImages.length)} style={{ position: 'absolute', right: '12px', background: 'rgba(0,0,0,0.4)', color: '#fff', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', fontSize: '16px' }}>›</button>
+              <div style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '6px' }}>
+                {allImages.map((_, i) => (
+                  <div key={i} onClick={() => setCurrentImageIndex(i)} style={{ width: i === currentImageIndex ? '16px' : '6px', height: '6px', borderRadius: '100px', background: i === currentImageIndex ? '#fff' : 'rgba(255,255,255,0.5)', cursor: 'pointer', transition: 'all 0.2s' }} />
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
+        {/* 썸네일 */}
+        {allImages.length > 1 && (
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto' }}>
+            {allImages.map((img, i) => (
+              <img key={i} src={img} alt={`${i}`} onClick={() => setCurrentImageIndex(i)} style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px', cursor: 'pointer', border: i === currentImageIndex ? '2px solid #1a3a2a' : '2px solid transparent', flexShrink: 0 }} />
+            ))}
+          </div>
+        )}
+
+        {/* 가격 + 제목 */}
         <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '24px', marginBottom: '16px' }}>
-          <div style={{ fontFamily: 'Georgia, serif', fontSize: '32px', fontWeight: '700', marginBottom: '8px' }}>
-            {listing.price === 0 || listing.price === null ? 'Free' : `$${listing.price}`}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <div style={{ fontFamily: 'Georgia, serif', fontSize: '32px', fontWeight: '700', color: listing.is_sold ? '#8a8a8a' : '#1a1a1a' }}>
+              {listing.price === 0 || listing.price === null ? 'Free' : `$${listing.price}`}
+            </div>
+            {listing.is_sold && (
+              <span style={{ background: '#fde8e8', color: '#c0392b', fontSize: '13px', fontWeight: '700', padding: '4px 12px', borderRadius: '100px' }}>SOLD</span>
+            )}
           </div>
           <div style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>{listing.title}</div>
           {avgRating && (
@@ -136,16 +185,31 @@ export default function ListingPage() {
           <div style={{ fontSize: '13px', color: '#8a8a8a' }}>
             📦 {listing.category} · 🕐 {new Date(listing.created_at).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' })}
           </div>
+
+          {/* 판매자 본인 - 판매완료 버튼 */}
+          {user && user.id === listing.user_id && (
+            <button onClick={handleMarkSold} disabled={markingSold} style={{ marginTop: '14px', background: listing.is_sold ? '#e8f5e8' : '#fde8e8', color: listing.is_sold ? '#2d7a2d' : '#c0392b', border: 'none', borderRadius: '100px', padding: '8px 20px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
+              {markingSold ? 'Updating...' : listing.is_sold ? '✅ Mark as available' : '🔴 Mark as sold'}
+            </button>
+          )}
         </div>
 
+        {/* 판매자 프로필 + 신뢰도 */}
         <div onClick={() => router.push(`/user/${listing.user_id}`)} style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-          <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#1a3a2a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', color: '#fff', fontWeight: '700', flexShrink: 0 }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#1a3a2a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', color: '#fff', fontWeight: '700', flexShrink: 0 }}>
             {seller?.email?.[0].toUpperCase() || '?'}
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '14px', fontWeight: '600' }}>{seller?.full_name || seller?.email?.split('@')[0] || 'NearMe User'}</div>
-            <div style={{ fontSize: '12px', color: '#8a8a8a' }}>View profile →</div>
+            <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '2px' }}>{seller?.full_name || seller?.email?.split('@')[0] || 'NearMe User'}</div>
+            {sellerAvgRating ? (
+              <div style={{ fontSize: '13px', color: '#c8952a' }}>
+                {'⭐'.repeat(Math.round(Number(sellerAvgRating)))} {sellerAvgRating} · {sellerReviews.length} review{sellerReviews.length !== 1 ? 's' : ''}
+              </div>
+            ) : (
+              <div style={{ fontSize: '12px', color: '#8a8a8a' }}>No reviews yet</div>
+            )}
           </div>
+          <div style={{ fontSize: '12px', color: '#8a8a8a' }}>View profile →</div>
         </div>
 
         {listing.description && (
@@ -155,17 +219,27 @@ export default function ListingPage() {
           </div>
         )}
 
-        <button onClick={async () => {
-          const res = await fetch('/api/create-checkout-session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ listingId: listing.id, listingTitle: listing.title }) })
-          const { url } = await res.json()
-          window.location.href = url
-        }} style={{ width: '100%', background: '#e85d2f', color: '#fff', border: 'none', borderRadius: '100px', padding: '16px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', marginBottom: '12px' }}>
-          🚀 Boost this listing — NZ$9.99
-        </button>
+        {!listing.is_sold && (
+          <>
+            <button onClick={async () => {
+              const res = await fetch('/api/create-checkout-session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ listingId: listing.id, listingTitle: listing.title }) })
+              const { url } = await res.json()
+              window.location.href = url
+            }} style={{ width: '100%', background: '#e85d2f', color: '#fff', border: 'none', borderRadius: '100px', padding: '16px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', marginBottom: '12px' }}>
+              🚀 Boost this listing — NZ$9.99
+            </button>
 
-        <button onClick={() => router.push(`/messages?listing=${listing.id}&receiver=${listing.user_id}`)} style={{ width: '100%', background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '16px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', marginBottom: '12px' }}>
-          💬 Message seller
-        </button>
+            <button onClick={() => router.push(`/messages?listing=${listing.id}&receiver=${listing.user_id}`)} style={{ width: '100%', background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '16px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', marginBottom: '12px' }}>
+              💬 Message seller
+            </button>
+          </>
+        )}
+
+        {listing.is_sold && (
+          <div style={{ background: '#fde8e8', borderRadius: '14px', padding: '16px', textAlign: 'center', marginBottom: '12px', fontSize: '15px', fontWeight: '600', color: '#c0392b' }}>
+            This item has been sold
+          </div>
+        )}
 
         {user && user.id !== listing.user_id && (
           <div style={{ marginBottom: '24px' }}>
@@ -192,6 +266,7 @@ export default function ListingPage() {
           </div>
         )}
 
+        {/* 리뷰 섹션 */}
         <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '24px', marginBottom: '16px' }}>
           <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px' }}>Reviews {reviews.length > 0 && `(${reviews.length})`}</div>
           {reviews.length === 0 ? (
@@ -217,7 +292,7 @@ export default function ListingPage() {
                   <button key={star} onClick={() => setRating(star)} style={{ fontSize: '24px', background: 'none', border: 'none', cursor: 'pointer', opacity: star <= rating ? 1 : 0.3 }}>⭐</button>
                 ))}
               </div>
-              <textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Share your experience..." rows={3} style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '10px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', resize: 'vertical', marginBottom: '10px' }} />
+              <textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Share your experience..." rows={3} style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '10px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', resize: 'vertical', marginBottom: '10px', fontFamily: "'DM Sans', sans-serif" }} />
               {reviewMessage && <div style={{ fontSize: '13px', color: '#2d7a2d', marginBottom: '8px' }}>{reviewMessage}</div>}
               <button onClick={handleReview} disabled={submitting} style={{ background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '10px 24px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
                 {submitting ? 'Submitting...' : 'Submit review'}
