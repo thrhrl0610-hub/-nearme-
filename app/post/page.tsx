@@ -14,6 +14,7 @@ export default function PostPage() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [isBusiness, setIsBusiness] = useState(false)
 
   // Jobs 전용 필드
   const [company, setCompany] = useState('')
@@ -24,7 +25,9 @@ export default function PostPage() {
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) router.push('/auth')
+      if (!user) { router.push('/auth'); return }
+      const { data: profile } = await supabase.from('profiles').select('is_business').eq('id', user.id).single()
+      if (profile?.is_business) setIsBusiness(true)
     }
     checkUser()
   }, [])
@@ -45,7 +48,6 @@ export default function PostPage() {
 
   const handlePost = async () => {
     if (!title) { setMessage('Please add a title'); return }
-    if (category === 'Jobs' && !payRate) { setMessage('Please add a pay rate'); return }
     setLoading(true)
     setMessage('')
 
@@ -59,27 +61,21 @@ export default function PostPage() {
     if (!user) { router.push('/auth'); return }
 
     if (category === 'Jobs') {
-      // jobs 테이블에 저장
       const { error } = await supabase.from('jobs').insert({
         user_id: user.id,
         title,
         description,
         company: company || 'Private',
-        pay_rate: payRate,
+        pay_rate: payRate || 'Negotiable',
         job_type: jobType,
-        is_urgent: isUrgent,
+        is_urgent: isBusiness ? isUrgent : false,
         location_name: null,
         lat,
         lng,
       })
-      if (error) {
-        setMessage('Error: ' + error.message)
-      } else {
-        setMessage('Job posted! ✅')
-        setTimeout(() => router.push('/'), 1500)
-      }
+      if (error) setMessage('Error: ' + error.message)
+      else { setMessage('Job posted! ✅'); setTimeout(() => router.push('/'), 1500) }
     } else {
-      // listings 테이블에 저장
       const imageUrls: string[] = []
       for (const image of images) {
         const fileExt = image.name.split('.').pop()
@@ -90,7 +86,6 @@ export default function PostPage() {
           imageUrls.push(urlData.publicUrl)
         }
       }
-
       const { error } = await supabase.from('listings').insert({
         user_id: user.id,
         title,
@@ -102,13 +97,8 @@ export default function PostPage() {
         latitude: lat,
         longitude: lng,
       })
-
-      if (error) {
-        setMessage('Error: ' + error.message)
-      } else {
-        setMessage('Posted successfully! ✅')
-        setTimeout(() => router.push('/'), 1500)
-      }
+      if (error) setMessage('Error: ' + error.message)
+      else { setMessage('Posted successfully! ✅'); setTimeout(() => router.push('/'), 1500) }
     }
     setLoading(false)
   }
@@ -151,7 +141,9 @@ export default function PostPage() {
                 <input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Kitchen hand needed" style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
               </div>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '8px' }}>Company / Name <span style={{ fontWeight: '400', color: '#8a8a8a' }}>(optional)</span></label>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '8px' }}>
+                  Company / Name <span style={{ fontWeight: '400', color: '#8a8a8a' }}>(optional)</span>
+                </label>
                 <input value={company} onChange={e => setCompany(e.target.value)} placeholder="e.g. The Orchard Bar or Private" style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
               </div>
               <div>
@@ -162,26 +154,33 @@ export default function PostPage() {
 
             <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8e4de', padding: '20px', marginBottom: '16px' }}>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '8px' }}>Pay rate</label>
-                <input value={payRate} onChange={e => setPayRate(e.target.value)} placeholder="e.g. $25/hr or $200/day" style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '8px' }}>
+                  Pay rate <span style={{ fontWeight: '400', color: '#8a8a8a' }}>(optional)</span>
+                </label>
+                <input value={payRate} onChange={e => setPayRate(e.target.value)} placeholder="e.g. $25/hr or $200/day or Negotiable" style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
               </div>
-              <div style={{ marginBottom: '16px' }}>
+
+              <div style={{ marginBottom: isBusiness ? '16px' : '0' }}>
                 <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '10px' }}>Job type</label>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {['Part-time', 'Full-time', 'One-off'].map((type) => (
+                  {['Part-time', 'Full-time', 'Help needed'].map((type) => (
                     <button key={type} onClick={() => setJobType(type)} style={{ border: jobType === type ? 'none' : '1.5px solid #e8e4de', borderRadius: '100px', padding: '7px 16px', fontSize: '13px', background: jobType === type ? '#1a3a2a' : '#fff', color: jobType === type ? '#fff' : '#4a4a4a', cursor: 'pointer' }}>{type}</button>
                   ))}
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#fde8e8', borderRadius: '10px', padding: '12px 16px', cursor: 'pointer' }} onClick={() => setIsUrgent(!isUrgent)}>
-                <div style={{ width: '20px', height: '20px', borderRadius: '4px', border: `2px solid ${isUrgent ? '#c0392b' : '#e8e4de'}`, background: isUrgent ? '#c0392b' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  {isUrgent && <span style={{ color: '#fff', fontSize: '12px' }}>✓</span>}
+
+              {/* Urgent - 비즈니스만 */}
+              {isBusiness && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#fde8e8', borderRadius: '10px', padding: '12px 16px', cursor: 'pointer', marginTop: '16px' }} onClick={() => setIsUrgent(!isUrgent)}>
+                  <div style={{ width: '20px', height: '20px', borderRadius: '4px', border: `2px solid ${isUrgent ? '#c0392b' : '#e8e4de'}`, background: isUrgent ? '#c0392b' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {isUrgent && <span style={{ color: '#fff', fontSize: '12px' }}>✓</span>}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#c0392b' }}>🔴 Mark as Urgent</div>
+                    <div style={{ fontSize: '12px', color: '#8a8a8a' }}>Need someone ASAP? Get priority placement</div>
+                  </div>
                 </div>
-                <div>
-                  <div style={{ fontSize: '13px', fontWeight: '600', color: '#c0392b' }}>🔴 Mark as Urgent</div>
-                  <div style={{ fontSize: '12px', color: '#8a8a8a' }}>Need someone ASAP? Get priority placement</div>
-                </div>
-              </div>
+              )}
             </div>
           </>
         )}
@@ -189,7 +188,6 @@ export default function PostPage() {
         {/* 일반 리스팅 폼 */}
         {!isJob && (
           <>
-            {/* PHOTOS */}
             <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8e4de', padding: '20px', marginBottom: '16px' }}>
               <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '4px' }}>Photos <span style={{ fontWeight: '400', color: '#8a8a8a' }}>(up to 5)</span></label>
               <div style={{ fontSize: '12px', color: '#8a8a8a', marginBottom: '12px' }}>First photo is the cover image</div>

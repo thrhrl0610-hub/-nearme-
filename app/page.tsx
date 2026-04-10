@@ -134,6 +134,7 @@ export default function Home() {
   const jobTabs = [
     { label: '📋 All', value: 'All' },
     { label: '🔴 Urgent', value: 'Urgent' },
+    { label: '🤝 Help needed', value: 'Help needed' },
     { label: '⏰ Part-time', value: 'Part-time' },
     { label: '💼 Full-time', value: 'Full-time' },
   ]
@@ -185,7 +186,6 @@ export default function Home() {
               ))}
             </div>
           </div>
-
           {currentAd && (
             <div onClick={() => handleAdClick(currentAd.id)} style={{ display: "flex", alignItems: "center", gap: "12px", background: "#fff", border: `1.5px solid ${currentAd.plan === 'PremierPlus' ? '#c8952a' : '#f0e4c0'}`, borderRadius: "12px", padding: "12px 16px", cursor: "pointer", position: "relative", transition: "all 0.3s ease" }}>
               {currentAd.plan === 'PremierPlus' && (
@@ -202,7 +202,6 @@ export default function Home() {
               <div style={{ fontSize: "20px", color: "#c8952a" }}>›</div>
             </div>
           )}
-
           <div style={{ marginTop: "10px", textAlign: "center" }}>
             <span onClick={handleAdvertiseClick} style={{ fontSize: "12px", color: "#c8952a", cursor: "pointer", textDecoration: "underline" }}>➕ Advertise here</span>
           </div>
@@ -293,7 +292,9 @@ export default function Home() {
                   cursor: "pointer",
                   whiteSpace: "nowrap",
                   background: activeJobTab === tab.value
-                    ? tab.value === 'Urgent' ? '#e85d2f' : '#1a3a2a'
+                    ? tab.value === 'Urgent' ? '#e85d2f'
+                    : tab.value === 'Help needed' ? '#c8952a'
+                    : '#1a3a2a'
                     : '#fff',
                   color: activeJobTab === tab.value ? '#fff' : '#4a4a4a',
                   boxShadow: activeJobTab === tab.value ? 'none' : '0 0 0 1.5px #e8e4de inset',
@@ -308,15 +309,17 @@ export default function Home() {
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 {filteredJobs.map((job) => (
-                  <div key={job.id} onClick={() => router.push(`/jobs/${job.id}`)} style={{ background: "#fff", border: `1px solid ${job.is_urgent ? '#e85d2f' : '#e8e4de'}`, borderRadius: "16px", padding: "16px 18px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", position: "relative" }}>
+                  <div key={job.id} onClick={() => router.push(`/jobs/${job.id}`)} style={{ background: "#fff", border: `1px solid ${job.is_urgent ? '#e85d2f' : job.job_type === 'Help needed' ? '#f0e4c0' : '#e8e4de'}`, borderRadius: "16px", padding: "16px 18px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", position: "relative" }}>
                     {job.is_urgent && (
                       <div style={{ position: "absolute", top: "-1px", left: "12px", background: "#e85d2f", color: "#fff", fontSize: "10px", fontWeight: "700", padding: "2px 8px", borderRadius: "0 0 6px 6px" }}>🔴 URGENT</div>
                     )}
-                    <div style={{ width: "50px", height: "50px", borderRadius: "12px", background: job.is_urgent ? "#fde8e8" : "#e8f4f0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px", flexShrink: 0, marginTop: job.is_urgent ? "10px" : "0" }}>💼</div>
+                    <div style={{ width: "50px", height: "50px", borderRadius: "12px", background: job.is_urgent ? "#fde8e8" : job.job_type === 'Help needed' ? "#fdf6e8" : "#e8f4f0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px", flexShrink: 0, marginTop: job.is_urgent ? "10px" : "0" }}>
+                      {job.job_type === 'Help needed' ? '🤝' : '💼'}
+                    </div>
                     <div style={{ flex: 1, marginTop: job.is_urgent ? "10px" : "0" }}>
                       <div style={{ fontSize: "16px", fontWeight: "600", marginBottom: "3px" }}>{job.title}</div>
                       <div style={{ fontSize: "14px", color: "#8a8a8a", marginBottom: "4px" }}>{job.company}{job.location_name ? ` · ${job.location_name}` : ''}</div>
-                      <span style={{ fontSize: "13px", borderRadius: "6px", padding: "3px 8px", fontWeight: "500", background: job.is_urgent ? "#fde8e8" : "#e8f5e8", color: job.is_urgent ? "#c0392b" : "#2d7a2d" }}>{job.job_type}</span>
+                      <span style={{ fontSize: "13px", borderRadius: "6px", padding: "3px 8px", fontWeight: "500", background: job.is_urgent ? "#fde8e8" : job.job_type === 'Help needed' ? "#fdf6e8" : "#e8f5e8", color: job.is_urgent ? "#c0392b" : job.job_type === 'Help needed' ? "#c8952a" : "#2d7a2d" }}>{job.job_type}</span>
                     </div>
                     <div style={{ fontSize: "17px", fontWeight: "700", flexShrink: 0, marginTop: job.is_urgent ? "10px" : "0" }}>{job.pay_rate}</div>
                   </div>
