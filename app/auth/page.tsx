@@ -89,7 +89,7 @@ export default function AuthPage() {
 
           {/* 모바일 상단 - 뒤로가기 + 로고 */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
-            <button onClick={() => router.back()} style={{ background: '#f0f0f0', border: 'none', borderRadius: '100px', padding: '7px 14px', fontSize: '13px', color: '#1a1a1a', cursor: 'pointer' }}>← Back</button>
+          <button onClick={() => router.push('/')} style={{ background: '#f0f0f0', border: 'none', borderRadius: '100px', padding: '7px 14px', fontSize: '13px', color: '#1a1a1a', cursor: 'pointer' }}>← Back</button>
             <div onClick={() => router.push('/')} style={{ fontFamily: 'Georgia, serif', fontSize: '24px', color: '#1a3a2a', cursor: 'pointer' }}>
               near<span style={{ color: '#4a8c5c', fontStyle: 'italic' }}>me</span>
             </div>
