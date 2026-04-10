@@ -110,8 +110,8 @@ export default function ListingPage() {
 
   const avgRating = reviews.length > 0 ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1) : null
   const sellerAvgRating = sellerReviews.length > 0 ? (sellerReviews.reduce((sum, r) => sum + r.rating, 0) / sellerReviews.length).toFixed(1) : null
-
   const allImages = listing ? [listing.image_url, ...(listing.extra_images || [])].filter(Boolean) : []
+  const isOwner = user && listing && user.id === listing.user_id
 
   if (loading) return <div style={{ minHeight: '100vh', background: '#faf8f4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a8a8a' }}>Loading...</div>
   if (!listing) return <div style={{ minHeight: '100vh', background: '#faf8f4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a8a8a' }}>Listing not found</div>
@@ -187,7 +187,7 @@ export default function ListingPage() {
           </div>
 
           {/* 판매자 본인 - 판매완료 버튼 */}
-          {user && user.id === listing.user_id && (
+          {isOwner && (
             <button onClick={handleMarkSold} disabled={markingSold} style={{ marginTop: '14px', background: listing.is_sold ? '#e8f5e8' : '#fde8e8', color: listing.is_sold ? '#2d7a2d' : '#c0392b', border: 'none', borderRadius: '100px', padding: '8px 20px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
               {markingSold ? 'Updating...' : listing.is_sold ? '✅ Mark as available' : '🔴 Mark as sold'}
             </button>
@@ -219,19 +219,26 @@ export default function ListingPage() {
           </div>
         )}
 
+        {/* 버튼 - 본인 게시물이면 Boost만, 남의 게시물이면 Message만 */}
         {!listing.is_sold && (
           <>
-            <button onClick={async () => {
-              const res = await fetch('/api/create-checkout-session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ listingId: listing.id, listingTitle: listing.title }) })
-              const { url } = await res.json()
-              window.location.href = url
-            }} style={{ width: '100%', background: '#e85d2f', color: '#fff', border: 'none', borderRadius: '100px', padding: '16px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', marginBottom: '12px' }}>
-              🚀 Boost this listing — NZ$9.99
-            </button>
-
-            <button onClick={() => router.push(`/messages?listing=${listing.id}&receiver=${listing.user_id}`)} style={{ width: '100%', background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '16px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', marginBottom: '12px' }}>
-              💬 Message seller
-            </button>
+            {isOwner && (
+              <button onClick={async () => {
+                const res = await fetch('/api/create-checkout-session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ listingId: listing.id, listingTitle: listing.title }) })
+                const { url } = await res.json()
+                window.location.href = url
+              }} style={{ width: '100%', background: '#e85d2f', color: '#fff', border: 'none', borderRadius: '100px', padding: '16px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', marginBottom: '12px' }}>
+                🚀 Boost this listing — NZ$9.99
+              </button>
+            )}
+            {!isOwner && (
+              <button onClick={() => {
+                if (!user) { router.push('/auth'); return }
+                router.push(`/messages?listing=${listing.id}&receiver=${listing.user_id}`)
+              }} style={{ width: '100%', background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '16px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', marginBottom: '12px' }}>
+                💬 Message seller
+              </button>
+            )}
           </>
         )}
 
@@ -241,7 +248,7 @@ export default function ListingPage() {
           </div>
         )}
 
-        {user && user.id !== listing.user_id && (
+        {user && !isOwner && (
           <div style={{ marginBottom: '24px' }}>
             {reportSent ? (
               <div style={{ fontSize: '13px', color: '#8a8a8a', textAlign: 'center' }}>✅ Report submitted. Thank you.</div>
@@ -284,7 +291,7 @@ export default function ListingPage() {
               ))}
             </div>
           )}
-          {user && user.id !== listing.user_id && (
+          {user && !isOwner && (
             <div>
               <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>Leave a review</div>
               <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
