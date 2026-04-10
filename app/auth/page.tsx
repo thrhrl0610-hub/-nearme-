@@ -55,7 +55,6 @@ export default function AuthPage() {
 
   return (
     <main style={{ minHeight: '100vh', display: 'flex', fontFamily: "'DM Sans', sans-serif" }}>
-      {/* LEFT PANEL - 데스크탑만 표시 */}
       <style>{`
         @media (max-width: 768px) {
           .auth-left { display: none !important; }
@@ -64,7 +63,7 @@ export default function AuthPage() {
       `}</style>
 
       <div className="auth-left" style={{ width: '44%', background: '#1a3a2a', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '48px 52px', flexShrink: 0 }}>
-        <div style={{ fontFamily: 'Georgia, serif', fontSize: '28px', color: '#fff' }}>
+        <div onClick={() => router.push('/')} style={{ fontFamily: 'Georgia, serif', fontSize: '28px', color: '#fff', cursor: 'pointer' }}>
           near<span style={{ color: '#7dcf9a', fontStyle: 'italic' }}>me</span>
         </div>
         <div>
@@ -85,13 +84,16 @@ export default function AuthPage() {
         </div>
       </div>
 
-      {/* RIGHT PANEL */}
       <div className="auth-right" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 40px', background: '#faf8f4' }}>
         <div style={{ width: '100%', maxWidth: '420px' }}>
 
-          {/* 모바일에서 로고 표시 */}
-          <div style={{ fontFamily: 'Georgia, serif', fontSize: '24px', color: '#1a3a2a', marginBottom: '24px', textAlign: 'center' }}>
-            near<span style={{ color: '#4a8c5c', fontStyle: 'italic' }}>me</span>
+          {/* 모바일 상단 - 뒤로가기 + 로고 */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
+            <button onClick={() => router.back()} style={{ background: '#f0f0f0', border: 'none', borderRadius: '100px', padding: '7px 14px', fontSize: '13px', color: '#1a1a1a', cursor: 'pointer' }}>← Back</button>
+            <div onClick={() => router.push('/')} style={{ fontFamily: 'Georgia, serif', fontSize: '24px', color: '#1a3a2a', cursor: 'pointer' }}>
+              near<span style={{ color: '#4a8c5c', fontStyle: 'italic' }}>me</span>
+            </div>
+            <div style={{ width: '60px' }} />
           </div>
 
           <div style={{ display: 'flex', background: '#e8e4de', borderRadius: '100px', padding: '4px', marginBottom: '32px', gap: '4px' }}>
