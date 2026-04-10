@@ -208,9 +208,9 @@ export default function Home() {
         </div>
       )}
 
-      {/* CATEGORIES */}
+      {/* CATEGORIES - job tabs랑 같은 크기 */}
       <div style={{ position: "relative" }}>
-        <div style={{ padding: "16px 20px 4px", display: "flex", gap: "10px", overflowX: "auto", scrollbarWidth: "none" }}>
+        <div style={{ padding: "16px 20px 4px", display: "flex", gap: "8px", overflowX: "auto", scrollbarWidth: "none" }}>
           {[
             { label: "🏠 All", value: "All" },
             { label: "📦 Marketplace", value: "Marketplace" },
@@ -226,7 +226,7 @@ export default function Home() {
               else if (cat.value === 'Real Estate') router.push('/realestate')
               else if (cat.value === 'Community') router.push('/community')
               else setActiveCategory(cat.value)
-            }} style={{ display: "flex", alignItems: "center", gap: "6px", border: activeCategory === cat.value ? "none" : "1.5px solid #e8e4de", borderRadius: "100px", padding: "8px 14px", fontSize: "13px", background: activeCategory === cat.value ? "#1a3a2a" : "#fff", color: activeCategory === cat.value ? "#fff" : "#4a4a4a", cursor: "pointer", whiteSpace: "nowrap", fontWeight: activeCategory === cat.value ? "600" : "400" }}>{cat.label}</button>
+            }} style={{ border: "none", borderRadius: "100px", padding: "8px 16px", fontSize: "13px", background: activeCategory === cat.value ? "#1a3a2a" : "#fff", color: activeCategory === cat.value ? "#fff" : "#4a4a4a", cursor: "pointer", whiteSpace: "nowrap", fontWeight: activeCategory === cat.value ? "600" : "400", boxShadow: activeCategory === cat.value ? 'none' : '0 0 0 1.5px #e8e4de inset' }}>{cat.label}</button>
           ))}
         </div>
         <div style={{ position: "absolute", right: 0, top: 0, height: "100%", width: "48px", background: "linear-gradient(to left, #faf8f4, transparent)", pointerEvents: "none" }} />
