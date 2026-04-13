@@ -3,6 +3,15 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 
+const CategoryIcons: Record<string, JSX.Element> = {
+  Marketplace: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>,
+  Jobs: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>,
+  Services: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>,
+  Events: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+  'Real Estate': <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+  Free: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>,
+}
+
 export default function PostPage() {
   const router = useRouter()
   const [title, setTitle] = useState('')
@@ -15,8 +24,6 @@ export default function PostPage() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [isBusiness, setIsBusiness] = useState(false)
-
-  // Jobs 전용 필드
   const [company, setCompany] = useState('')
   const [payRate, setPayRate] = useState('')
   const [jobType, setJobType] = useState('Part-time')
@@ -35,8 +42,7 @@ export default function PostPage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     if (files.length === 0) return
-    const remaining = 5 - images.length
-    const toAdd = files.slice(0, remaining)
+    const toAdd = files.slice(0, 5 - images.length)
     setImages(prev => [...prev, ...toAdd])
     setImagePreviews(prev => [...prev, ...toAdd.map(f => URL.createObjectURL(f))])
   }
@@ -50,28 +56,22 @@ export default function PostPage() {
     if (!title) { setMessage('Please add a title'); return }
     setLoading(true)
     setMessage('')
-
     const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(resolve, reject)
     }).catch(() => null)
     const lat = pos?.coords.latitude ?? null
     const lng = pos?.coords.longitude ?? null
-
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/auth'); return }
 
     if (category === 'Jobs') {
       const { error } = await supabase.from('jobs').insert({
-        user_id: user.id,
-        title,
-        description,
+        user_id: user.id, title, description,
         company: company || 'Private',
         pay_rate: payRate || 'Negotiable',
         job_type: jobType,
         is_urgent: isBusiness ? isUrgent : false,
-        location_name: null,
-        lat,
-        lng,
+        location_name: null, lat, lng,
       })
       if (error) setMessage('Error: ' + error.message)
       else { setMessage('Job posted! ✅'); setTimeout(() => router.push('/'), 1500) }
@@ -87,15 +87,12 @@ export default function PostPage() {
         }
       }
       const { error } = await supabase.from('listings').insert({
-        user_id: user.id,
-        title,
-        description,
+        user_id: user.id, title, description,
         price: isFree ? 0 : Number(price),
         category,
         image_url: imageUrls[0] || null,
         extra_images: imageUrls.slice(1),
-        latitude: lat,
-        longitude: lng,
+        latitude: lat, longitude: lng,
       })
       if (error) setMessage('Error: ' + error.message)
       else { setMessage('Posted successfully! ✅'); setTimeout(() => router.push('/'), 1500) }
@@ -126,13 +123,19 @@ export default function PostPage() {
         <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8e4de', padding: '20px', marginBottom: '16px' }}>
           <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '10px' }}>Category</label>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {['Marketplace', 'Jobs', 'Services', 'Events', 'Real Estate', 'Free'].map((cat) => (
-              <button key={cat} onClick={() => setCategory(cat)} style={{ border: category === cat ? 'none' : '1.5px solid #e8e4de', borderRadius: '100px', padding: '7px 16px', fontSize: '14px', background: category === cat ? '#1a3a2a' : '#fff', color: category === cat ? '#fff' : '#4a4a4a', cursor: 'pointer' }}>{cat}</button>
-            ))}
+            {['Marketplace', 'Jobs', 'Services', 'Events', 'Real Estate', 'Free'].map((cat) => {
+              const active = category === cat
+              return (
+                <button key={cat} onClick={() => setCategory(cat)} style={{ display: 'flex', alignItems: 'center', gap: '6px', border: 'none', borderRadius: '100px', padding: '7px 14px', fontSize: '13px', background: active ? '#1a3a2a' : '#fff', color: active ? '#fff' : '#4a4a4a', cursor: 'pointer', boxShadow: active ? 'none' : '0 0 0 1.5px #e8e4de inset' }}>
+                  <span style={{ color: active ? '#fff' : '#4a4a4a', display: 'flex' }}>{CategoryIcons[cat]}</span>
+                  {cat}
+                </button>
+              )
+            })}
           </div>
         </div>
 
-        {/* JOBS 전용 폼 */}
+        {/* JOBS 폼 */}
         {isJob && (
           <>
             <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8e4de', padding: '20px', marginBottom: '16px' }}>
@@ -141,9 +144,7 @@ export default function PostPage() {
                 <input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Kitchen hand needed" style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
               </div>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '8px' }}>
-                  Company / Name <span style={{ fontWeight: '400', color: '#8a8a8a' }}>(optional)</span>
-                </label>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '8px' }}>Company / Name <span style={{ fontWeight: '400', color: '#8a8a8a' }}>(optional)</span></label>
                 <input value={company} onChange={e => setCompany(e.target.value)} placeholder="e.g. The Orchard Bar or Private" style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
               </div>
               <div>
@@ -154,12 +155,9 @@ export default function PostPage() {
 
             <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8e4de', padding: '20px', marginBottom: '16px' }}>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '8px' }}>
-                  Pay rate <span style={{ fontWeight: '400', color: '#8a8a8a' }}>(optional)</span>
-                </label>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '8px' }}>Pay rate <span style={{ fontWeight: '400', color: '#8a8a8a' }}>(optional)</span></label>
                 <input value={payRate} onChange={e => setPayRate(e.target.value)} placeholder="e.g. $25/hr or $200/day or Negotiable" style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
               </div>
-
               <div style={{ marginBottom: isBusiness ? '16px' : '0' }}>
                 <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '10px' }}>Job type</label>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -168,15 +166,13 @@ export default function PostPage() {
                   ))}
                 </div>
               </div>
-
-              {/* Urgent - 비즈니스만 */}
               {isBusiness && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#fde8e8', borderRadius: '10px', padding: '12px 16px', cursor: 'pointer', marginTop: '16px' }} onClick={() => setIsUrgent(!isUrgent)}>
                   <div style={{ width: '20px', height: '20px', borderRadius: '4px', border: `2px solid ${isUrgent ? '#c0392b' : '#e8e4de'}`, background: isUrgent ? '#c0392b' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     {isUrgent && <span style={{ color: '#fff', fontSize: '12px' }}>✓</span>}
                   </div>
                   <div>
-                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#c0392b' }}>🔴 Mark as Urgent</div>
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#c0392b' }}>Mark as Urgent</div>
                     <div style={{ fontSize: '12px', color: '#8a8a8a' }}>Need someone ASAP? Get priority placement</div>
                   </div>
                 </div>
@@ -200,8 +196,8 @@ export default function PostPage() {
                   </div>
                 ))}
                 {images.length < 5 && (
-                  <div onClick={() => document.getElementById('imageInput')?.click()} style={{ width: '80px', height: '80px', border: '2px dashed #e8e4de', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#faf8f4', flexDirection: 'column', gap: '4px' }}>
-                    <div style={{ fontSize: '24px' }}>📷</div>
+                  <div onClick={() => document.getElementById('imageInput')?.click()} style={{ width: '80px', height: '80px', border: '2px dashed #e8e4de', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#faf8f4', flexDirection: 'column', gap: '6px' }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8a8a8a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                     <div style={{ fontSize: '10px', color: '#8a8a8a' }}>Add</div>
                   </div>
                 )}
