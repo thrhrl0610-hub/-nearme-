@@ -17,7 +17,8 @@ export default function AdminPage() {
 
   useEffect(() => {
     const checkAdmin = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user || user.email !== ADMIN_EMAIL) { router.push('/'); return }
       await fetchAll()
       setLoading(false)
@@ -112,7 +113,6 @@ export default function AdminPage() {
       </div>
 
       <div style={{ padding: '28px 32px', maxWidth: '1100px', margin: '0 auto' }}>
-        {/* STATS */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '28px' }}>
           {[
             { label: 'Total listings', value: stats.listings, emoji: '📦' },
@@ -128,7 +128,6 @@ export default function AdminPage() {
           ))}
         </div>
 
-        {/* TABS */}
         <div style={{ display: 'flex', background: '#e8e4de', borderRadius: '100px', padding: '4px', marginBottom: '24px', gap: '4px', width: 'fit-content' }}>
           {[
             { label: `⏳ Ads (${pendingAds.length} pending)`, value: 'ads' },
@@ -140,7 +139,6 @@ export default function AdminPage() {
           ))}
         </div>
 
-        {/* ADS TAB */}
         {activeTab === 'ads' && (
           <div>
             {pendingAds.length > 0 && (
@@ -233,7 +231,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* REPORTS TAB */}
         {activeTab === 'reports' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {reports.length === 0 ? (
@@ -259,7 +256,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* LISTINGS TAB */}
         {activeTab === 'listings' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {listings.map((item) => (
@@ -281,7 +277,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* USERS TAB */}
         {activeTab === 'users' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {users.map((u) => (
