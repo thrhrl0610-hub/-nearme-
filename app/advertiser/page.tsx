@@ -29,6 +29,7 @@ export default function AdvertiserDashboard() {
   const [mapsUrl, setMapsUrl] = useState('')
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState('')
+  const [editingAdId, setEditingAdId] = useState<string | null>(null)
 
   useEffect(() => {
     const checkUser = async () => {
@@ -47,16 +48,6 @@ export default function AdvertiserDashboard() {
       if (adsData && adsData.length > 0) {
         setMyAds(adsData)
         const ad = adsData[0]
-        if (ad.business_name) setBizName(ad.business_name)
-        if (ad.description) setDescription(ad.description)
-        if (ad.long_description) setLongDescription(ad.long_description)
-        if (ad.category) setCategory(ad.category)
-        if (ad.location_name) setLocationName(ad.location_name)
-        if (ad.emoji) setEmoji(ad.emoji)
-        if (ad.image_url) { setLogoPreview(ad.image_url); setUseImage(true) }
-        if (ad.poster_url) setPosterPreview(ad.poster_url)
-        if (ad.website_url) setWebsiteUrl(ad.website_url)
-        if (ad.maps_url) setMapsUrl(ad.maps_url)
         if (ad.paid_until && new Date(ad.paid_until) > new Date()) setHasPaid(true)
 
         const adIds = adsData.map((a: any) => a.id)
@@ -116,11 +107,42 @@ export default function AdvertiserDashboard() {
     })
   }
 
+  const resetForm = () => {
+    setBizName('')
+    setDescription('')
+    setLongDescription('')
+    setCategory('Food')
+    setLocationName('')
+    setEmoji('🏪')
+    setLogoImage(null)
+    setLogoPreview(null)
+    setUseImage(false)
+    setPosterImage(null)
+    setPosterPreview(null)
+    setWebsiteUrl('')
+    setMapsUrl('')
+    setEditingAdId(null)
+    setSaveMsg('')
+  }
+
+  const handleEditAd = (ad: any) => {
+    setEditingAdId(ad.id)
+    setBizName(ad.business_name || '')
+    setDescription(ad.description || '')
+    setLongDescription(ad.long_description || '')
+    setCategory(ad.category || 'Food')
+    setLocationName(ad.location_name || '')
+    setEmoji(ad.emoji || '🏪')
+    if (ad.image_url) { setLogoPreview(ad.image_url); setUseImage(true) }
+    else { setLogoPreview(null); setUseImage(false) }
+    setPosterPreview(ad.poster_url || null)
+    setWebsiteUrl(ad.website_url || '')
+    setMapsUrl(ad.maps_url || '')
+    setActiveTab('create')
+  }
+
   const handleCreateAd = async () => {
-    if (!canCreateAd) {
-      setSaveMsg('Please subscribe to a plan to create an ad.')
-      return
-    }
+    if (!canCreateAd) { setSaveMsg('Please subscribe to a plan to create an ad.'); return }
     if (!bizName || !description || !locationName) { setSaveMsg('Please fill in all fields'); return }
     setSaving(true)
     setSaveMsg('')
@@ -160,16 +182,22 @@ export default function AdvertiserDashboard() {
       adData.longitude = loc.lng
     }
 
-    if (myAds.length > 0) {
-      const { error } = await supabase.from('ads').update(adData).eq('user_id', user.id)
-      if (!error) setSaveMsg('Ad updated! ✅')
-      else setSaveMsg('Error: ' + error.message)
+    if (editingAdId) {
+      const { error } = await supabase.from('ads').update(adData).eq('id', editingAdId)
+      if (!error) {
+        setSaveMsg('Ad updated! ✅')
+        const { data: adsData } = await supabase.from('ads').select('*').eq('user_id', user.id)
+        if (adsData) setMyAds(adsData)
+      } else {
+        setSaveMsg('Error: ' + error.message)
+      }
     } else {
       const { error } = await supabase.from('ads').insert({ ...adData, radius_km: 10 })
       if (!error) {
         setSaveMsg('Ad created! ✅')
         const { data: adsData } = await supabase.from('ads').select('*').eq('user_id', user.id)
         if (adsData) setMyAds(adsData)
+        setTimeout(() => { resetForm(); setActiveTab('dashboard') }, 1500)
       } else {
         setSaveMsg('Error: ' + error.message)
       }
@@ -219,7 +247,7 @@ export default function AdvertiserDashboard() {
         </div>
         <nav style={{ padding: '16px 12px', flex: 1 }}>
           {[{ label: 'Dashboard', emoji: '📊', tab: 'dashboard' }, { label: 'Create Ad', emoji: '➕', tab: 'create' }].map((item) => (
-            <div key={item.label} onClick={() => setActiveTab(item.tab as any)} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '8px', color: activeTab === item.tab ? '#fff' : 'rgba(255,255,255,0.65)', fontSize: '14px', cursor: 'pointer', marginBottom: '2px', background: activeTab === item.tab ? 'rgba(255,255,255,0.1)' : 'transparent' }}>
+            <div key={item.label} onClick={() => { if (item.tab === 'create') resetForm(); setActiveTab(item.tab as any) }} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '8px', color: activeTab === item.tab ? '#fff' : 'rgba(255,255,255,0.65)', fontSize: '14px', cursor: 'pointer', marginBottom: '2px', background: activeTab === item.tab ? 'rgba(255,255,255,0.1)' : 'transparent' }}>
               <span>{item.emoji}</span>{item.label}
             </div>
           ))}
@@ -253,7 +281,7 @@ export default function AdvertiserDashboard() {
 
         <div className="adv-mobile-nav" style={{ background: '#fff', borderBottom: '1px solid #e8e4de', display: 'flex', padding: '8px 16px', gap: '8px' }}>
           {[{ label: '📊 Dashboard', tab: 'dashboard' }, { label: '➕ Create Ad', tab: 'create' }].map((item) => (
-            <button key={item.tab} onClick={() => setActiveTab(item.tab as any)} style={{ flex: 1, border: 'none', borderRadius: '100px', padding: '9px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', background: activeTab === item.tab ? '#1a3a2a' : '#f0f0f0', color: activeTab === item.tab ? '#fff' : '#4a4a4a' }}>{item.label}</button>
+            <button key={item.tab} onClick={() => { if (item.tab === 'create') resetForm(); setActiveTab(item.tab as any) }} style={{ flex: 1, border: 'none', borderRadius: '100px', padding: '9px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', background: activeTab === item.tab ? '#1a3a2a' : '#f0f0f0', color: activeTab === item.tab ? '#fff' : '#4a4a4a' }}>{item.label}</button>
           ))}
         </div>
 
@@ -294,7 +322,10 @@ export default function AdvertiserDashboard() {
 
               {myAds.length > 0 ? (
                 <div style={{ marginBottom: '24px' }}>
-                  <div style={{ fontFamily: 'Georgia, serif', fontSize: '18px', marginBottom: '14px' }}>My Ads</div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                    <div style={{ fontFamily: 'Georgia, serif', fontSize: '18px' }}>My Ads ({myAds.length})</div>
+                    <button onClick={() => { resetForm(); setActiveTab('create') }} style={{ background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>+ New Ad</button>
+                  </div>
                   {myAds.map((ad) => (
                     <div key={ad.id} style={{ background: '#fff', border: '1px solid #e8e4de', borderRadius: '14px', overflow: 'hidden', marginBottom: '10px' }}>
                       {ad.poster_url && <img src={ad.poster_url} alt="poster" style={{ width: '100%', objectFit: 'cover', display: 'block', borderRadius: '14px 14px 0 0' }} />}
@@ -314,7 +345,7 @@ export default function AdvertiserDashboard() {
                           </div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          <button onClick={() => setActiveTab('create')} style={{ background: '#fdf6e8', color: '#c8952a', border: 'none', borderRadius: '8px', padding: '7px 12px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Edit</button>
+                          <button onClick={() => handleEditAd(ad)} style={{ background: '#fdf6e8', color: '#c8952a', border: 'none', borderRadius: '8px', padding: '7px 12px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Edit</button>
                           <button onClick={() => handleDeleteAd(ad.id)} style={{ background: '#fde8e8', color: '#c0392b', border: 'none', borderRadius: '8px', padding: '7px 12px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Delete</button>
                         </div>
                       </div>
@@ -326,7 +357,7 @@ export default function AdvertiserDashboard() {
                   <div style={{ fontSize: '36px', marginBottom: '10px' }}>📣</div>
                   <div style={{ fontSize: '15px', fontWeight: '600', marginBottom: '6px' }}>No ads yet</div>
                   <div style={{ fontSize: '13px', color: '#8a8a8a', marginBottom: '14px' }}>Create your first ad to reach locals!</div>
-                  <button onClick={() => setActiveTab('create')} style={{ background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '10px 24px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Create Ad →</button>
+                  <button onClick={() => { resetForm(); setActiveTab('create') }} style={{ background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '10px 24px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Create Ad →</button>
                 </div>
               )}
 
@@ -363,14 +394,18 @@ export default function AdvertiserDashboard() {
 
           {activeTab === 'create' && (
             <div>
-              <div style={{ fontFamily: 'Georgia, serif', fontSize: '20px', marginBottom: '6px' }}>
-                {myAds.length > 0 ? 'Edit your ad' : 'Create your ad'}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <div style={{ fontFamily: 'Georgia, serif', fontSize: '20px' }}>
+                  {editingAdId ? 'Edit ad' : 'Create a new ad'}
+                </div>
+                {editingAdId && (
+                  <button onClick={() => { resetForm() }} style={{ background: '#f0f0f0', border: 'none', borderRadius: '100px', padding: '7px 14px', fontSize: '12px', cursor: 'pointer', color: '#4a4a4a' }}>+ New ad instead</button>
+                )}
               </div>
               <div style={{ fontSize: '14px', color: '#8a8a8a', marginBottom: '24px' }}>
                 This is what locals will see in the Sponsored strip and feed.
               </div>
 
-              {/* 결제 안 한 사람한테 블로커 */}
               {!canCreateAd && (
                 <div style={{ background: '#fdf6e8', border: '1.5px solid #f0e4c0', borderRadius: '14px', padding: '28px', textAlign: 'center', marginBottom: '24px' }}>
                   <div style={{ fontSize: '36px', marginBottom: '10px' }}>💳</div>
@@ -380,7 +415,6 @@ export default function AdvertiserDashboard() {
                 </div>
               )}
 
-              {/* PREVIEW */}
               <div style={{ background: '#fff', border: '1px solid #e8e4de', borderRadius: '14px', overflow: 'hidden', marginBottom: '20px', opacity: canCreateAd ? 1 : 0.4, pointerEvents: canCreateAd ? 'auto' : 'none' }}>
                 {posterPreview && <img src={posterPreview} alt="poster preview" style={{ width: '100%', display: 'block' }} />}
                 <div style={{ padding: '16px 18px' }}>
@@ -403,7 +437,6 @@ export default function AdvertiserDashboard() {
               </div>
 
               <div style={{ opacity: canCreateAd ? 1 : 0.4, pointerEvents: canCreateAd ? 'auto' : 'none' }}>
-                {/* BRAND ICON */}
                 <div style={{ marginBottom: '20px', background: '#fff', border: '1px solid #e8e4de', borderRadius: '12px', padding: '16px' }}>
                   <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '12px' }}>Brand icon</label>
                   <div style={{ display: 'flex', background: '#f0f0f0', borderRadius: '100px', padding: '3px', marginBottom: '14px', gap: '3px' }}>
@@ -430,10 +463,9 @@ export default function AdvertiserDashboard() {
                   )}
                 </div>
 
-                {/* POSTER */}
                 <div style={{ marginBottom: '20px', background: '#fff', border: '1px solid #e8e4de', borderRadius: '12px', padding: '16px' }}>
                   <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '4px' }}>📸 Business poster <span style={{ fontWeight: '400', color: '#8a8a8a' }}>(optional)</span></label>
-                  <div style={{ fontSize: '12px', color: '#8a8a8a', marginBottom: '12px' }}>Shown full-width on your business page. Use a banner, menu, or promo image.</div>
+                  <div style={{ fontSize: '12px', color: '#8a8a8a', marginBottom: '12px' }}>Shown full-width on your business page.</div>
                   <div onClick={() => document.getElementById('posterInput')?.click()} style={{ border: '2px dashed #e8e4de', borderRadius: '10px', overflow: 'hidden', cursor: 'pointer', background: '#faf8f4' }}>
                     {posterPreview
                       ? <img src={posterPreview} alt="poster" style={{ width: '100%', objectFit: 'cover', display: 'block' }} />
@@ -473,15 +505,13 @@ export default function AdvertiserDashboard() {
                 </div>
 
                 <div style={{ marginBottom: '14px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>
-                    About your business <span style={{ color: '#8a8a8a', fontWeight: '400' }}>(optional)</span>
-                  </label>
+                  <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>About your business <span style={{ color: '#8a8a8a', fontWeight: '400' }}>(optional)</span></label>
                   <textarea value={longDescription} onChange={e => setLongDescription(e.target.value)} placeholder="Tell locals about your business — hours, specialties, story..." rows={4} style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', resize: 'vertical', fontFamily: "'DM Sans', sans-serif" }} />
                 </div>
 
                 <div style={{ marginBottom: '24px', background: '#fff', border: '1px solid #e8e4de', borderRadius: '12px', padding: '16px' }}>
                   <label style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', display: 'block', marginBottom: '4px' }}>🔗 Links <span style={{ fontWeight: '400', color: '#8a8a8a' }}>(optional)</span></label>
-                  <div style={{ fontSize: '12px', color: '#8a8a8a', marginBottom: '14px' }}>Add your website or Google Maps link — locals can tap to visit.</div>
+                  <div style={{ fontSize: '12px', color: '#8a8a8a', marginBottom: '14px' }}>Add your website or Google Maps link.</div>
                   <div style={{ marginBottom: '12px' }}>
                     <label style={{ fontSize: '12px', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>🌐 Website URL</label>
                     <input value={websiteUrl} onChange={e => setWebsiteUrl(e.target.value)} placeholder="e.g. https://victoriasushi.co.nz" style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '10px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
@@ -497,7 +527,7 @@ export default function AdvertiserDashboard() {
                 )}
 
                 <button onClick={handleCreateAd} disabled={saving || !canCreateAd} style={{ width: '100%', background: canCreateAd ? '#1a3a2a' : '#ccc', color: '#fff', border: 'none', borderRadius: '100px', padding: '13px', fontSize: '15px', fontWeight: '600', cursor: canCreateAd ? 'pointer' : 'not-allowed' }}>
-                  {saving ? 'Saving...' : myAds.length > 0 ? 'Update ad' : 'Create ad'}
+                  {saving ? 'Saving...' : editingAdId ? 'Update ad' : 'Create ad'}
                 </button>
               </div>
             </div>
