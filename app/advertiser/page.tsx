@@ -97,14 +97,13 @@ export default function AdvertiserDashboard() {
     return data.publicUrl
   }
 
-  const getLocation = (): Promise<{lat: number, lng: number} | null> => {
-    return new Promise((resolve) => {
-      if (!navigator.geolocation) { resolve(null); return }
-      navigator.geolocation.getCurrentPosition(
-        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => resolve(null)
-      )
-    })
+  const getLocationFromSuburb = async (suburb: string): Promise<{lat: number, lng: number} | null> => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(suburb + ', New Zealand')}&format=json&limit=1`)
+      const data = await res.json()
+      if (data && data[0]) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
+      return null
+    } catch { return null }
   }
 
   const resetForm = () => {
@@ -159,7 +158,8 @@ export default function AdvertiserDashboard() {
       if (url) poster_url = url
     }
 
-    const loc = await getLocation()
+    // suburb 기준으로 위치 설정
+    const loc = await getLocationFromSuburb(locationName)
 
     const adData: any = {
       business_name: bizName,
@@ -288,7 +288,7 @@ export default function AdvertiserDashboard() {
         <div style={{ padding: '20px 24px 60px', maxWidth: '900px', margin: '0 auto' }}>
           {success && (
             <div style={{ background: '#eaf5ec', border: '1px solid #b7e4c7', borderRadius: '12px', padding: '16px 20px', marginBottom: '24px', fontSize: '14px', color: '#2d7a3a', fontWeight: '600' }}>
-              🎉 Payment successful! Your plan is now active.
+              🎉 Payment successful! Your first month is free. Welcome to nearme Business!
             </div>
           )}
 
@@ -363,13 +363,14 @@ export default function AdvertiserDashboard() {
 
               <div style={{ marginBottom: '14px' }}>
                 <div style={{ fontFamily: 'Georgia, serif', fontSize: '18px', marginBottom: '4px' }}>Ad plans</div>
-                <div style={{ fontSize: '13px', color: '#8a8a8a' }}>Simple, local pricing — no algorithm tax.</div>
+                <div style={{ fontSize: '13px', color: '#8a8a8a' }}>Simple, local pricing — no algorithm tax. First month free on all plans.</div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
                 {[
-                  { name: 'Starter', price: '$49', desc: 'Perfect for testing the waters', features: ['Sponsored Strip slot', 'Up to 5 km radius', '~1,200 local users/mo', 'Basic analytics'], popular: false },
-                  { name: 'Growth', price: '$199', desc: 'For businesses ready to grow', features: ['Strip + Feed Ad placements', 'Up to 20 km radius', '~8,000 local users/mo', 'Full analytics + CTR', 'Priority placement'], popular: true },
-                  { name: 'Premier', price: '$499', desc: 'Maximum local visibility', features: ['All placements incl. Banner', 'Up to 50 km radius', '~25,000 local users/mo', 'Advanced analytics', 'Dedicated support'], popular: false },
+                  { name: 'Starter', price: '$49', desc: 'Great for small local businesses', features: ['Sponsored Strip slot', 'Up to 5 km radius', '~1,200 local users/mo', 'Basic analytics', 'First month free'], popular: false },
+                  { name: 'Standard', price: '$99', desc: 'More reach, more locals', features: ['Sponsored Strip slot', 'Up to 10 km radius', '~3,000 local users/mo', 'Basic analytics', 'First month free'], popular: false },
+                  { name: 'Growth', price: '$199', desc: 'For businesses ready to grow', features: ['Strip + Feed Ad placements', 'Up to 20 km radius', '~8,000 local users/mo', 'Full analytics + CTR', 'Priority placement', 'First month free'], popular: true },
+                  { name: 'Premier', price: '$499', desc: 'Maximum local visibility', features: ['All placements incl. Banner', 'Up to 50 km radius', '~25,000 local users/mo', 'Advanced analytics', 'Dedicated support', 'First month free'], popular: false },
                 ].map((plan) => (
                   <div key={plan.name} style={{ background: '#fff', border: `1.5px solid ${plan.popular ? '#1a3a2a' : '#e8e4de'}`, borderRadius: '14px', padding: '20px', position: 'relative' }}>
                     {plan.popular && <div style={{ position: 'absolute', top: '-1px', left: '50%', transform: 'translateX(-50%)', background: '#1a3a2a', color: '#fff', fontSize: '10px', fontWeight: '700', padding: '3px 12px', borderRadius: '0 0 8px 8px' }}>Most popular</div>}
@@ -384,7 +385,7 @@ export default function AdvertiserDashboard() {
                       ))}
                     </ul>
                     <button onClick={() => handlePlanClick(plan.name)} style={{ width: '100%', borderRadius: '100px', padding: '10px', fontWeight: '600', fontSize: '14px', cursor: 'pointer', border: plan.popular ? 'none' : '1.5px solid #e8e4de', background: plan.popular ? '#1a3a2a' : 'transparent', color: plan.popular ? '#fff' : '#1a1a1a' }}>
-                      {plan.popular ? 'Subscribe now' : 'Get started'}
+                      {plan.popular ? 'Start free trial' : 'Start free trial'}
                     </button>
                   </div>
                 ))}
@@ -409,8 +410,8 @@ export default function AdvertiserDashboard() {
               {!canCreateAd && (
                 <div style={{ background: '#fdf6e8', border: '1.5px solid #f0e4c0', borderRadius: '14px', padding: '28px', textAlign: 'center', marginBottom: '24px' }}>
                   <div style={{ fontSize: '36px', marginBottom: '10px' }}>💳</div>
-                  <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px' }}>Subscribe to create an ad</div>
-                  <div style={{ fontSize: '14px', color: '#8a8a8a', marginBottom: '20px' }}>Choose a plan from the Dashboard tab to get started.</div>
+                  <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px' }}>Start your free trial</div>
+                  <div style={{ fontSize: '14px', color: '#8a8a8a', marginBottom: '20px' }}>Choose a plan from the Dashboard tab. First month is on us!</div>
                   <button onClick={() => setActiveTab('dashboard')} style={{ background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '10px 28px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>View plans →</button>
                 </div>
               )}

@@ -4,10 +4,11 @@ import Stripe from 'stripe'
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' })
 
 export async function POST(req: NextRequest) {
-  const { planName, planPrice } = await req.json()
+  const { planName } = await req.json()
 
   const priceMap: Record<string, number> = {
     'Starter': 4900,
+    'Standard': 9900,
     'Growth': 19900,
     'Premier': 49900,
   }
@@ -18,12 +19,16 @@ export async function POST(req: NextRequest) {
     line_items: [{
       price_data: {
         currency: 'nzd',
-        product_data: { name: `NearMe ${planName} Plan` },
+        product_data: { name: `nearme ${planName} Plan` },
         unit_amount: priceMap[planName] || 4900,
         recurring: { interval: 'month' },
       },
       quantity: 1,
     }],
+    subscription_data: {
+      trial_period_days: 30,
+      metadata: { planName },
+    },
     success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/advertiser?success=true`,
     cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/advertiser`,
   })
