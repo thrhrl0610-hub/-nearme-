@@ -164,10 +164,8 @@ export default function Home() {
   const categories = [
     { label: "All", value: "All" },
     { label: "Marketplace", value: "Marketplace" },
-    { label: "Jobs", value: "Jobs" },
     { label: "Events", value: "Events" },
     { label: "Real Estate", value: "Real Estate" },
-    { label: "Services", value: "Services" },
     { label: "Community", value: "Community" },
   ]
 
@@ -242,8 +240,7 @@ export default function Home() {
               const active = activeCategory === cat.value
               return (
                 <button key={cat.value} onClick={() => {
-                  if (cat.value === 'Jobs') router.push('/browse?category=Jobs')
-                  else if (cat.value === 'Events') router.push('/events')
+                  if (cat.value === 'Events') router.push('/events')
                   else if (cat.value === 'Real Estate') router.push('/realestate')
                   else if (cat.value === 'Community') router.push('/community')
                   else setActiveCategory(cat.value)
