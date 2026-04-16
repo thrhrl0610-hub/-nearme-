@@ -2,10 +2,16 @@
 import { useState, useEffect } from 'react'
 
 export default function SplashScreen() {
-  const [visible, setVisible] = useState(true)
+  const [visible, setVisible] = useState(false)
   const [fadeOut, setFadeOut] = useState(false)
 
   useEffect(() => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+      || (window.navigator as any).standalone === true
+    
+    if (!isStandalone) return
+
+    setVisible(true)
     const fadeTimer = setTimeout(() => setFadeOut(true), 1500)
     const hideTimer = setTimeout(() => setVisible(false), 2000)
     return () => {
