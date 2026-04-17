@@ -256,7 +256,7 @@ export default function Home() {
 
         <div style={{ padding: "16px 20px", maxWidth: "1100px", margin: "0 auto" }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "14px" }}>
-            <div style={{ fontFamily: "Georgia, serif", fontSize: "22px" }}>Near you</div>
+            <div style={{ fontFamily: "Georgia, serif", fontSize: "22px" }}>Near me</div>
             <div onClick={() => router.push('/browse')} style={{ fontSize: "15px", color: "#4a8c5c", cursor: "pointer", textDecoration: "underline" }}>See all →</div>
           </div>
 

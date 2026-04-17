@@ -4,14 +4,16 @@ import Stripe from 'stripe'
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' })
 
 export async function POST(req: NextRequest) {
-  const { planName } = await req.json()
+  const { planName, adData } = await req.json()
 
-  const priceMap: Record<string, number> = {
-    'Starter': 4900,
-    'Standard': 9900,
-    'Growth': 19900,
-    'Premier': 49900,
+  const planConfig: Record<string, { price: number, radius: number }> = {
+    'Starter':  { price: 4900,  radius: 5  },
+    'Standard': { price: 9900,  radius: 10 },
+    'Growth':   { price: 19900, radius: 20 },
+    'Premier':  { price: 49900, radius: 50 },
   }
+
+  const plan = planConfig[planName] || planConfig['Starter']
 
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
@@ -20,14 +22,18 @@ export async function POST(req: NextRequest) {
       price_data: {
         currency: 'nzd',
         product_data: { name: `nearme ${planName} Plan` },
-        unit_amount: priceMap[planName] || 4900,
+        unit_amount: plan.price,
         recurring: { interval: 'month' },
       },
       quantity: 1,
     }],
     subscription_data: {
       trial_period_days: 30,
-      metadata: { planName },
+      metadata: {
+        planName,
+        radius: plan.radius.toString(),
+        adData: JSON.stringify(adData),
+      },
     },
     success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/advertiser?success=true`,
     cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/advertiser`,
