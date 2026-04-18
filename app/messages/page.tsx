@@ -18,10 +18,15 @@ function MessagesContent() {
   const [newMessage, setNewMessage] = useState('')
   const [listing, setListing] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imageFile, setImageFile] = useState<File | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true)
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/auth'); return }
       setUser(user)
@@ -48,7 +53,7 @@ function MessagesContent() {
       setLoading(false)
     }
     fetchData()
-  }, [])
+  }, [listingId, receiverId])
 
   const fetchMessages = async (userId: string) => {
     if (!listingId) return
@@ -60,24 +65,65 @@ function MessagesContent() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image must be smaller than 5MB')
+      return
+    }
+    setImageFile(file)
+    const reader = new FileReader()
+    reader.onload = (ev) => setImagePreview(ev.target?.result as string)
+    reader.readAsDataURL(file)
+  }
+
   const handleSend = async () => {
-    if (!newMessage.trim() || !user || !receiverId || !listingId) return
+    if ((!newMessage.trim() && !imageFile) || !user || !receiverId || !listingId) return
+
+    setUploading(true)
+    let imageUrl: string | null = null
+
+    // 이미지 있으면 먼저 업로드
+    if (imageFile) {
+      const fileExt = imageFile.name.split('.').pop()
+      const fileName = `messages/${user.id}-${Date.now()}.${fileExt}`
+      const { error: uploadError } = await supabase.storage
+        .from('listings')
+        .upload(fileName, imageFile)
+
+      if (uploadError) {
+        alert('Failed to upload image: ' + uploadError.message)
+        setUploading(false)
+        return
+      }
+
+      const { data: urlData } = supabase.storage.from('listings').getPublicUrl(fileName)
+      imageUrl = urlData.publicUrl
+    }
+
     const { error } = await supabase.from('messages').insert({
       listing_id: listingId,
       sender_id: user.id,
       receiver_id: receiverId,
-      content: newMessage.trim()
+      content: newMessage.trim() || '',
+      image_url: imageUrl
     })
+
     if (!error) {
       await supabase.from('notifications').insert({
         user_id: receiverId,
         type: 'message',
-        message: `You have a new message about "${listing?.title || 'a listing'}"`,
+        message: imageUrl ? `You have a new photo about "${listing?.title || 'a listing'}"` : `You have a new message about "${listing?.title || 'a listing'}"`,
         listing_id: listingId
       })
       setNewMessage('')
+      setImageFile(null)
+      setImagePreview(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
       await fetchMessages(user.id)
     }
+    setUploading(false)
   }
 
   if (loading) return <div style={{ minHeight: '100vh', background: '#faf8f4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a8a8a' }}>Loading...</div>
@@ -107,7 +153,7 @@ function MessagesContent() {
                 <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: '#e8f4f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>💬</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '3px' }}>{conv.listings?.title || 'Listing'}</div>
-                  <div style={{ fontSize: '13px', color: '#8a8a8a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{conv.content}</div>
+                  <div style={{ fontSize: '13px', color: '#8a8a8a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{conv.image_url ? '📷 Photo' : conv.content}</div>
                 </div>
               </div>
             ))}
@@ -119,7 +165,7 @@ function MessagesContent() {
     </main>
   )
 
-  // 채팅방 화면 (BottomNav 없음 - 입력창이 하단에 있어서)
+  // 채팅방 화면
   return (
     <main style={{ minHeight: '100vh', background: '#faf8f4', display: 'flex', flexDirection: 'column' }}>
       <nav style={{ background: '#1a3a2a', padding: '0 24px', height: '58px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
@@ -147,8 +193,27 @@ function MessagesContent() {
         ) : (
           messages.map((msg) => (
             <div key={msg.id} style={{ display: 'flex', justifyContent: msg.sender_id === user?.id ? 'flex-end' : 'flex-start' }}>
-              <div style={{ maxWidth: '70%', padding: '10px 14px', borderRadius: '14px', fontSize: '14px', background: msg.sender_id === user?.id ? '#1a3a2a' : '#fff', color: msg.sender_id === user?.id ? '#fff' : '#1a1a1a', border: msg.sender_id === user?.id ? 'none' : '1px solid #e8e4de' }}>
-                {msg.content}
+              <div style={{ maxWidth: '70%', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {msg.image_url && (
+                  <img
+                    src={msg.image_url}
+                    alt="Message attachment"
+                    onClick={() => window.open(msg.image_url, '_blank')}
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '240px',
+                      borderRadius: '14px',
+                      cursor: 'pointer',
+                      objectFit: 'cover',
+                      border: msg.sender_id === user?.id ? 'none' : '1px solid #e8e4de'
+                    }}
+                  />
+                )}
+                {msg.content && (
+                  <div style={{ padding: '10px 14px', borderRadius: '14px', fontSize: '14px', background: msg.sender_id === user?.id ? '#1a3a2a' : '#fff', color: msg.sender_id === user?.id ? '#fff' : '#1a1a1a', border: msg.sender_id === user?.id ? 'none' : '1px solid #e8e4de', wordBreak: 'break-word' }}>
+                    {msg.content}
+                  </div>
+                )}
               </div>
             </div>
           ))
@@ -156,9 +221,52 @@ function MessagesContent() {
         <div ref={bottomRef} />
       </div>
 
-      <div style={{ background: '#fff', borderTop: '1px solid #e8e4de', padding: '12px 24px', display: 'flex', gap: '10px', flexShrink: 0 }}>
-        <input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSend()} placeholder="Type a message..." style={{ flex: 1, border: '1.5px solid #e8e4de', borderRadius: '100px', padding: '10px 18px', fontSize: '14px', outline: 'none' }} />
-        <button onClick={handleSend} style={{ background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '10px 20px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Send</button>
+      {/* 이미지 미리보기 */}
+      {imagePreview && (
+        <div style={{ background: '#fff', borderTop: '1px solid #e8e4de', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <img src={imagePreview} alt="Preview" style={{ width: '60px', height: '60px', borderRadius: '8px', objectFit: 'cover' }} />
+          <div style={{ flex: 1, fontSize: '13px', color: '#4a4a4a' }}>Photo ready to send</div>
+          <button
+            onClick={() => {
+              setImageFile(null)
+              setImagePreview(null)
+              if (fileInputRef.current) fileInputRef.current.value = ''
+            }}
+            style={{ background: '#fde8e8', color: '#c0392b', border: 'none', borderRadius: '100px', padding: '6px 14px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
+          >Remove</button>
+        </div>
+      )}
+
+      <div style={{ background: '#fff', borderTop: '1px solid #e8e4de', padding: '12px 24px', display: 'flex', gap: '8px', flexShrink: 0, alignItems: 'center' }}>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleImageSelect}
+          style={{ display: 'none' }}
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          style={{ background: '#f0ede5', color: '#1a3a2a', border: 'none', borderRadius: '50%', width: '40px', height: '40px', fontSize: '20px', cursor: uploading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+        >
+          📷
+        </button>
+        <input
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && !uploading && handleSend()}
+          placeholder={imagePreview ? "Add a caption (optional)..." : "Type a message..."}
+          disabled={uploading}
+          style={{ flex: 1, border: '1.5px solid #e8e4de', borderRadius: '100px', padding: '10px 18px', fontSize: '14px', outline: 'none' }}
+        />
+        <button
+          onClick={handleSend}
+          disabled={uploading || (!newMessage.trim() && !imageFile)}
+          style={{ background: uploading || (!newMessage.trim() && !imageFile) ? '#8a8a8a' : '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '10px 20px', fontSize: '14px', fontWeight: '600', cursor: uploading ? 'not-allowed' : 'pointer', flexShrink: 0 }}
+        >
+          {uploading ? '...' : 'Send'}
+        </button>
       </div>
     </main>
   )
