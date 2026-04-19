@@ -235,26 +235,13 @@ export default function ListingPage() {
           </div>
         )}
 
-        {!listing.is_sold && (
-          <>
-            {isOwner && (
-              <button onClick={async () => {
-                const res = await fetch('/api/create-checkout-session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ listingId: listing.id, listingTitle: listing.title }) })
-                const { url } = await res.json()
-                window.location.href = url
-              }} style={{ width: '100%', background: '#e85d2f', color: '#fff', border: 'none', borderRadius: '100px', padding: '16px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', marginBottom: '12px' }}>
-                Boost this listing — NZ$9.99
-              </button>
-            )}
-            {!isOwner && (
-              <button onClick={() => {
-                if (!user) { router.push('/auth'); return }
-                router.push(`/messages?listing=${listing.id}&receiver=${listing.user_id}`)
-              }} style={{ width: '100%', background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '16px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', marginBottom: '12px' }}>
-                Message seller
-              </button>
-            )}
-          </>
+        {!listing.is_sold && !isOwner && (
+          <button onClick={() => {
+            if (!user) { router.push('/auth'); return }
+            router.push(`/messages?listing=${listing.id}&receiver=${listing.user_id}`)
+          }} style={{ width: '100%', background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '16px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', marginBottom: '12px' }}>
+            Message seller
+          </button>
         )}
 
         {listing.is_sold && (

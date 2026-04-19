@@ -14,11 +14,26 @@ export default function AuthPage() {
   const [suburb, setSuburb] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
+  const [ageConfirmed, setAgeConfirmed] = useState(false)
   const router = useRouter()
 
   const handleAuth = async () => {
-    setLoading(true)
     setMessage('')
+
+    // 회원가입 시 약관 동의 체크
+    if (isSignup) {
+      if (!agreedToTerms) {
+        setMessage('Please agree to the Terms and Privacy Policy')
+        return
+      }
+      if (!ageConfirmed) {
+        setMessage('You must be at least 13 years old to sign up')
+        return
+      }
+    }
+
+    setLoading(true)
     if (isSignup) {
       const { data, error } = await supabase.auth.signUp({ email, password })
       if (error) { setMessage(error.message); setLoading(false); return }
@@ -52,6 +67,10 @@ export default function AuthPage() {
   }
 
   const handleGoogleLogin = async () => {
+    if (isSignup && (!agreedToTerms || !ageConfirmed)) {
+      setMessage('Please agree to the Terms and confirm age before signing up')
+      return
+    }
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: 'https://www.nearmenow.co.nz' }
@@ -59,6 +78,10 @@ export default function AuthPage() {
   }
 
   const handleAppleLogin = async () => {
+    if (isSignup && (!agreedToTerms || !ageConfirmed)) {
+      setMessage('Please agree to the Terms and confirm age before signing up')
+      return
+    }
     await supabase.auth.signInWithOAuth({
       provider: 'apple',
       options: { redirectTo: 'https://www.nearmenow.co.nz' }
@@ -181,13 +204,46 @@ export default function AuthPage() {
             <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
           </div>
 
-          <div style={{ marginBottom: '24px' }}>
+          <div style={{ marginBottom: '20px' }}>
             <label style={{ fontSize: '13px', fontWeight: '500', color: '#4a4a4a', display: 'block', marginBottom: '6px' }}>Password</label>
             <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
           </div>
 
+          {/* 약관 동의 체크박스 (signup 모드에서만) */}
+          {isSignup && (
+            <div style={{ marginBottom: '20px', background: '#f5f5f5', borderRadius: '10px', padding: '14px' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', marginBottom: '10px' }}>
+                <input
+                  type="checkbox"
+                  checked={ageConfirmed}
+                  onChange={(e) => setAgeConfirmed(e.target.checked)}
+                  style={{ marginTop: '3px', cursor: 'pointer', accentColor: '#1a3a2a' }}
+                />
+                <span style={{ fontSize: '13px', color: '#4a4a4a', lineHeight: '1.5' }}>
+                  I confirm I am <strong>at least 13 years old</strong>
+                </span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  style={{ marginTop: '3px', cursor: 'pointer', accentColor: '#1a3a2a' }}
+                />
+                <span style={{ fontSize: '13px', color: '#4a4a4a', lineHeight: '1.5' }}>
+                  I agree to the{' '}
+                  <a href="/terms" target="_blank" style={{ color: '#4a8c5c', textDecoration: 'underline' }}>Terms of Service</a>
+                  {', '}
+                  <a href="/privacy" target="_blank" style={{ color: '#4a8c5c', textDecoration: 'underline' }}>Privacy Policy</a>
+                  {', and '}
+                  <a href="/community-guidelines" target="_blank" style={{ color: '#4a8c5c', textDecoration: 'underline' }}>Community Guidelines</a>
+                </span>
+              </label>
+            </div>
+          )}
+
           {message && (
-            <div style={{ marginBottom: '16px', padding: '10px 14px', background: '#e8f5e8', borderRadius: '8px', fontSize: '13px', color: '#2d7a2d' }}>{message}</div>
+            <div style={{ marginBottom: '16px', padding: '10px 14px', background: message.includes('✅') ? '#e8f5e8' : '#fde8e8', borderRadius: '8px', fontSize: '13px', color: message.includes('✅') ? '#2d7a2d' : '#c0392b' }}>{message}</div>
           )}
 
           <button onClick={handleAuth} disabled={loading} style={{ width: '100%', background: mode === 'biz' ? '#c8952a' : '#1a3a2a', color: '#fff', border: 'none', borderRadius: '8px', padding: '13px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', marginBottom: '16px' }}>

@@ -67,7 +67,6 @@ export default function ProfilePage() {
         const { data: savesData } = await supabase.from('saves').select('*, listings(*)').eq('user_id', user.id).order('created_at', { ascending: false })
         if (savesData) setSavedListings(savesData.map((s: any) => s.listings).filter(Boolean))
 
-        // 삭제 요청 상태 확인
         const { data: deletionData } = await supabase.from('account_deletion_requests').select('*').eq('user_id', user.id).eq('status', 'pending').maybeSingle()
         if (deletionData) setPendingDeletion(deletionData)
 
@@ -134,7 +133,6 @@ export default function ProfilePage() {
       return
     }
 
-    // 삭제 요청 정보 다시 조회
     const { data: deletionData } = await supabase.from('account_deletion_requests').select('*').eq('user_id', user.id).eq('status', 'pending').maybeSingle()
     if (deletionData) setPendingDeletion(deletionData)
 
@@ -320,9 +318,32 @@ export default function ProfilePage() {
           )
         )}
 
+        {/* 법적 문서 링크 섹션 */}
+        <div style={{ marginTop: '32px', background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '20px' }}>
+          <div style={{ fontSize: '13px', fontWeight: '600', color: '#4a4a4a', marginBottom: '14px' }}>Legal & Support</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <a href="/privacy" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', color: '#1a1a1a', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f0ede5' }}>
+              <span>Privacy Policy</span>
+              <span style={{ color: '#8a8a8a' }}>›</span>
+            </a>
+            <a href="/terms" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', color: '#1a1a1a', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f0ede5' }}>
+              <span>Terms of Service</span>
+              <span style={{ color: '#8a8a8a' }}>›</span>
+            </a>
+            <a href="/community-guidelines" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', color: '#1a1a1a', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f0ede5' }}>
+              <span>Community Guidelines</span>
+              <span style={{ color: '#8a8a8a' }}>›</span>
+            </a>
+            <a href="mailto:contact@nearmenow.co.nz" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', color: '#1a1a1a', textDecoration: 'none', fontSize: '14px' }}>
+              <span>Contact Support</span>
+              <span style={{ color: '#8a8a8a' }}>›</span>
+            </a>
+          </div>
+        </div>
+
         {/* Danger Zone - 계정 삭제 */}
         {!pendingDeletion && (
-          <div style={{ marginTop: '32px', background: '#fff', borderRadius: '16px', border: '1.5px solid #fde8e8', padding: '20px' }}>
+          <div style={{ marginTop: '16px', background: '#fff', borderRadius: '16px', border: '1.5px solid #fde8e8', padding: '20px' }}>
             <div style={{ fontSize: '14px', fontWeight: '700', color: '#c0392b', marginBottom: '8px' }}>Danger zone</div>
             <div style={{ fontSize: '13px', color: '#4a4a4a', lineHeight: '1.5', marginBottom: '14px' }}>
               Permanently delete your account and all associated data. This action cannot be undone.
@@ -337,7 +358,6 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* 계정 삭제 확인 모달 */}
       {showDeleteModal && (
         <div onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(''); setDeleteError('') }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: '20px', padding: '24px', maxWidth: '440px', width: '100%', fontFamily: "'DM Sans', sans-serif", maxHeight: '90vh', overflowY: 'auto' }}>

@@ -27,6 +27,7 @@ function MessagesContent() {
   const [showBlockConfirm, setShowBlockConfirm] = useState(false)
   const [blockLoading, setBlockLoading] = useState(false)
   const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set())
+  const [blockedByIds, setBlockedByIds] = useState<Set<string>>(new Set())
   const bottomRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -42,20 +43,28 @@ function MessagesContent() {
       const blockedSet = new Set((blockedData || []).map((b: any) => b.blocked_id))
       setBlockedIds(blockedSet)
 
+      // 나를 차단한 유저 목록
+      const { data: blockedByData } = await supabase.from('blocked_users').select('blocker_id').eq('blocked_id', user.id)
+      const blockedBySet = new Set((blockedByData || []).map((b: any) => b.blocker_id))
+      setBlockedByIds(blockedBySet)
+
+      // 전체 차단 관계 (양방향)
+      const allBlocked = new Set([...blockedSet, ...blockedBySet])
+
       const { count } = await supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('read', false)
       setUnreadCount(count || 0)
 
       if (listingId) {
         const { data } = await supabase.from('listings').select('*').eq('id', listingId).single()
         if (data) setListing(data)
-        await fetchMessages(user.id)
+        await fetchMessages(user.id, allBlocked)
       } else {
         const { data } = await supabase.from('messages').select('*, listings(title, price)').or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`).order('created_at', { ascending: false })
         if (data) {
-          // 차단된 유저와의 대화 제외
+          // 차단된 유저와의 대화 제외 (양방향)
           const filtered = data.filter((m: any) => {
             const otherId = m.sender_id === user.id ? m.receiver_id : m.sender_id
-            return !blockedSet.has(otherId)
+            return !allBlocked.has(otherId)
           })
           const seen = new Set()
           const unique = filtered.filter((m: any) => {
@@ -71,10 +80,21 @@ function MessagesContent() {
     fetchData()
   }, [listingId, receiverId])
 
-  const fetchMessages = async (userId: string) => {
+  const fetchMessages = async (userId: string, allBlocked?: Set<string>) => {
     if (!listingId) return
     const { data } = await supabase.from('messages').select('*').eq('listing_id', listingId).or(`sender_id.eq.${userId},receiver_id.eq.${userId}`).order('created_at', { ascending: true })
-    if (data) setMessages(data)
+    if (data) {
+      // 차단 관계 있는 유저와의 메시지는 표시하지 않음
+      if (allBlocked && allBlocked.size > 0) {
+        const filtered = data.filter((m: any) => {
+          const otherId = m.sender_id === userId ? m.receiver_id : m.sender_id
+          return !allBlocked.has(otherId)
+        })
+        setMessages(filtered)
+      } else {
+        setMessages(data)
+      }
+    }
   }
 
   useEffect(() => {
@@ -96,6 +116,12 @@ function MessagesContent() {
 
   const handleSend = async () => {
     if ((!newMessage.trim() && !imageFile) || !user || !receiverId || !listingId) return
+
+    // 차단 관계 있으면 전송 차단
+    if (blockedIds.has(receiverId) || blockedByIds.has(receiverId)) {
+      alert('Cannot send message. This conversation is unavailable.')
+      return
+    }
 
     setUploading(true)
     let imageUrl: string | null = null
@@ -136,7 +162,8 @@ function MessagesContent() {
       setImageFile(null)
       setImagePreview(null)
       if (fileInputRef.current) fileInputRef.current.value = ''
-      await fetchMessages(user.id)
+      const allBlocked = new Set([...blockedIds, ...blockedByIds])
+      await fetchMessages(user.id, allBlocked)
     }
     setUploading(false)
   }
@@ -153,8 +180,8 @@ function MessagesContent() {
 
   if (loading) return <div style={{ minHeight: '100vh', background: '#faf8f4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a8a8a' }}>Loading...</div>
 
-  // 차단된 유저와의 채팅방이면 진입 차단
-  if (receiverId && blockedIds.has(receiverId)) {
+  // 차단 관계 있는 채팅방이면 진입 차단 (양방향)
+  if (receiverId && (blockedIds.has(receiverId) || blockedByIds.has(receiverId))) {
     return (
       <main style={{ minHeight: '100vh', background: '#faf8f4', display: 'flex', flexDirection: 'column' }}>
         <nav style={{ background: '#1a3a2a', padding: '0 24px', height: '58px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -166,8 +193,12 @@ function MessagesContent() {
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', textAlign: 'center' }}>
           <div>
             <div style={{ fontSize: '48px', marginBottom: '12px' }}>🚫</div>
-            <div style={{ fontFamily: 'Georgia, serif', fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>User blocked</div>
-            <div style={{ fontSize: '14px', color: '#4a4a4a', lineHeight: '1.5' }}>You've blocked this user. To unblock, visit their profile.</div>
+            <div style={{ fontFamily: 'Georgia, serif', fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>Conversation unavailable</div>
+            <div style={{ fontSize: '14px', color: '#4a4a4a', lineHeight: '1.5' }}>
+              {blockedIds.has(receiverId)
+                ? "You've blocked this user. To unblock, visit their profile."
+                : "This conversation is no longer available."}
+            </div>
           </div>
         </div>
       </main>
@@ -355,7 +386,6 @@ function MessagesContent() {
         </button>
       </div>
 
-      {/* 차단 확인 모달 */}
       {showBlockConfirm && (
         <div onClick={() => setShowBlockConfirm(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1001, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: '20px', padding: '24px', maxWidth: '400px', width: '100%', fontFamily: "'DM Sans', sans-serif" }}>
