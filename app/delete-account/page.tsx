@@ -159,7 +159,7 @@ export default function DeleteAccountPage() {
             </div>
 
             <div style={{ fontSize: '12px', color: '#8a8a8a', textAlign: 'center', marginTop: '20px', lineHeight: '1.5' }}>
-              Need help? Contact us at <a href="mailto:connect@viralx.co.nz" style={{ color: '#4a8c5c' }}>connect@viralx.co.nz</a>
+              Need help? Contact us at <a href="mailto:contact@nearmenow.co.nz" style={{ color: '#4a8c5c' }}>contact@nearmenow.co.nz</a>
             </div>
           </>
         )}

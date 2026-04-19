@@ -12,7 +12,7 @@ export default function PrivacyPolicyPage() {
           <div style={{ fontSize: '13px', color: '#8a8a8a', marginBottom: '32px' }}>Last updated: April 2026</div>
   
           <p>
-            This Privacy Policy describes how ViralX LTD ("we", "us", or "our") collects, uses, and shares your personal information when you use the nearme mobile application and website (the "Service"). By using nearme, you agree to the terms of this Privacy Policy.
+            This Privacy Policy describes how nearme ("we", "us", or "our") collects, uses, and shares your personal information when you use the nearme mobile application and website (the "Service"). By using nearme, you agree to the terms of this Privacy Policy.
           </p>
   
           <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '22px', fontWeight: '700', marginTop: '32px', marginBottom: '12px' }}>1. Information We Collect</h2>
@@ -62,7 +62,7 @@ export default function PrivacyPolicyPage() {
             <li>Request a copy of your data</li>
             <li>Object to certain processing activities</li>
           </ul>
-          <p>To exercise these rights, contact us at <a href="mailto:connect@viralx.co.nz" style={{ color: '#4a8c5c' }}>connect@viralx.co.nz</a>.</p>
+          <p>To exercise these rights, contact us at <a href="mailto:contact@nearmenow.co.nz" style={{ color: '#4a8c5c' }}>contact@nearmenow.co.nz</a>.</p>
   
           <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '22px', fontWeight: '700', marginTop: '32px', marginBottom: '12px' }}>6. Children's Privacy</h2>
           <p>
@@ -86,11 +86,13 @@ export default function PrivacyPolicyPage() {
   
           <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '22px', fontWeight: '700', marginTop: '32px', marginBottom: '12px' }}>10. Contact Us</h2>
           <p>
-            ViralX LTD<br/>
-            155 The Strand, Parnell, Auckland, New Zealand<br/>
-            Email: <a href="mailto:connect@viralx.co.nz" style={{ color: '#4a8c5c' }}>connect@viralx.co.nz</a><br/>
-            Website: <a href="https://viralx.co.nz" style={{ color: '#4a8c5c' }}>viralx.co.nz</a>
+            Email: <a href="mailto:contact@nearmenow.co.nz" style={{ color: '#4a8c5c' }}>contact@nearmenow.co.nz</a><br/>
+            Website: <a href="https://www.nearmenow.co.nz" style={{ color: '#4a8c5c' }}>nearmenow.co.nz</a>
           </p>
+  
+          <div style={{ fontSize: '12px', color: '#8a8a8a', marginTop: '16px', lineHeight: 1.6 }}>
+            nearme is a service operated by ViralX LTD, a company registered in New Zealand.
+          </div>
   
           <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #e8e4de', fontSize: '13px', color: '#8a8a8a' }}>
             <a href="/terms" style={{ color: '#4a8c5c', marginRight: '16px' }}>Terms of Service</a>

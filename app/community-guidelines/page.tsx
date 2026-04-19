@@ -116,12 +116,12 @@ export default function CommunityGuidelinesPage() {
   
           <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '22px', fontWeight: '700', marginTop: '32px', marginBottom: '12px' }}>12. Appeals</h2>
           <p>
-            If your account is suspended or content removed and you believe it was in error, contact <a href="mailto:connect@viralx.co.nz" style={{ color: '#4a8c5c' }}>connect@viralx.co.nz</a> within 14 days with your account email and a brief explanation. We'll review and respond within 7 business days.
+            If your account is suspended or content removed and you believe it was in error, contact <a href="mailto:contact@nearmenow.co.nz" style={{ color: '#4a8c5c' }}>contact@nearmenow.co.nz</a> within 14 days with your account email and a brief explanation. We'll review and respond within 7 business days.
           </p>
   
           <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '22px', fontWeight: '700', marginTop: '32px', marginBottom: '12px' }}>13. Questions</h2>
           <p>
-            Questions about these Guidelines? Contact us at <a href="mailto:connect@viralx.co.nz" style={{ color: '#4a8c5c' }}>connect@viralx.co.nz</a>.
+            Questions about these Guidelines? Contact us at <a href="mailto:contact@nearmenow.co.nz" style={{ color: '#4a8c5c' }}>contact@nearmenow.co.nz</a>.
           </p>
   
           <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #e8e4de', fontSize: '13px', color: '#8a8a8a' }}>

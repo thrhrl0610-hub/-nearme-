@@ -12,7 +12,7 @@ export default function TermsOfServicePage() {
           <div style={{ fontSize: '13px', color: '#8a8a8a', marginBottom: '32px' }}>Last updated: April 2026</div>
   
           <p>
-            Welcome to nearme. These Terms of Service ("Terms") govern your use of the nearme mobile application and website (the "Service"), operated by ViralX LTD ("we", "us", "our"). By accessing or using the Service, you agree to be bound by these Terms.
+            Welcome to nearme. These Terms of Service ("Terms") govern your use of the nearme mobile application and website (the "Service"). By accessing or using the Service, you agree to be bound by these Terms.
           </p>
   
           <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '22px', fontWeight: '700', marginTop: '32px', marginBottom: '12px' }}>1. Eligibility</h2>
@@ -27,7 +27,7 @@ export default function TermsOfServicePage() {
   
           <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '22px', fontWeight: '700', marginTop: '32px', marginBottom: '12px' }}>3. User-Generated Content</h2>
           <p>
-            You are solely responsible for the content you post on nearme, including listings, job postings, photos, messages, reviews, and community posts. By posting content, you grant ViralX LTD a non-exclusive, worldwide, royalty-free license to use, display, and distribute that content solely for the purpose of operating the Service.
+            You are solely responsible for the content you post on nearme, including listings, job postings, photos, messages, reviews, and community posts. By posting content, you grant nearme a non-exclusive, worldwide, royalty-free license to use, display, and distribute that content solely for the purpose of operating the Service.
           </p>
           <p>You agree NOT to post content that:</p>
           <ul style={{ paddingLeft: '20px', marginBottom: '16px' }}>
@@ -51,7 +51,7 @@ export default function TermsOfServicePage() {
           <p>You agree that:</p>
           <ul style={{ paddingLeft: '20px', marginBottom: '16px' }}>
             <li>All transactions are conducted directly between users, at their own risk</li>
-            <li>ViralX LTD is not responsible for any disputes, damages, losses, injuries, or failed transactions</li>
+            <li>nearme is not responsible for any disputes, damages, losses, injuries, or failed transactions</li>
             <li>You will verify the identity, credentials, and goods of any other user before transacting</li>
             <li>You will comply with all applicable laws (tax, consumer protection, employment, etc.)</li>
             <li>Meeting in person should be done safely — we recommend public locations</li>
@@ -62,7 +62,7 @@ export default function TermsOfServicePage() {
             Businesses may purchase advertising plans, featured placements, and listing boosts through Stripe. All payments are final except where required by law. Advertising fees are exclusive of GST unless stated otherwise.
           </p>
           <p>
-            Advertisers agree that their advertisements comply with all applicable laws and accurately represent their business. ViralX LTD reserves the right to reject or remove any advertisement at its discretion.
+            Advertisers agree that their advertisements comply with all applicable laws and accurately represent their business. We reserve the right to reject or remove any advertisement at our discretion.
           </p>
   
           <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '22px', fontWeight: '700', marginTop: '32px', marginBottom: '12px' }}>6. Prohibited Conduct</h2>
@@ -84,7 +84,7 @@ export default function TermsOfServicePage() {
   
           <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '22px', fontWeight: '700', marginTop: '32px', marginBottom: '12px' }}>8. Intellectual Property</h2>
           <p>
-            The nearme name, logo, design, and software are the property of ViralX LTD and protected by copyright, trademark, and other laws. You may not copy, modify, or redistribute any part of the Service without our written permission.
+            The nearme name, logo, design, and software are protected by copyright, trademark, and other laws. You may not copy, modify, or redistribute any part of the Service without our written permission.
           </p>
   
           <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '22px', fontWeight: '700', marginTop: '32px', marginBottom: '12px' }}>9. Disclaimer of Warranties</h2>
@@ -94,12 +94,12 @@ export default function TermsOfServicePage() {
   
           <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '22px', fontWeight: '700', marginTop: '32px', marginBottom: '12px' }}>10. Limitation of Liability</h2>
           <p>
-            TO THE MAXIMUM EXTENT PERMITTED BY LAW, VIRALX LTD SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING OUT OF OR RELATED TO YOUR USE OF THE SERVICE. OUR TOTAL LIABILITY TO YOU FOR ANY CLAIM SHALL NOT EXCEED THE AMOUNT YOU PAID US IN THE 12 MONTHS PRECEDING THE CLAIM.
+            TO THE MAXIMUM EXTENT PERMITTED BY LAW, NEARME AND ITS OPERATING COMPANY SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING OUT OF OR RELATED TO YOUR USE OF THE SERVICE. OUR TOTAL LIABILITY TO YOU FOR ANY CLAIM SHALL NOT EXCEED THE AMOUNT YOU PAID US IN THE 12 MONTHS PRECEDING THE CLAIM.
           </p>
   
           <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '22px', fontWeight: '700', marginTop: '32px', marginBottom: '12px' }}>11. Indemnification</h2>
           <p>
-            You agree to indemnify and hold harmless ViralX LTD, its officers, employees, and affiliates from any claims, damages, or expenses arising from your use of the Service, your content, or your violation of these Terms.
+            You agree to indemnify and hold harmless nearme, its operating company, officers, employees, and affiliates from any claims, damages, or expenses arising from your use of the Service, your content, or your violation of these Terms.
           </p>
   
           <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '22px', fontWeight: '700', marginTop: '32px', marginBottom: '12px' }}>12. Termination</h2>
@@ -119,10 +119,13 @@ export default function TermsOfServicePage() {
   
           <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '22px', fontWeight: '700', marginTop: '32px', marginBottom: '12px' }}>15. Contact</h2>
           <p>
-            ViralX LTD<br/>
-            155 The Strand, Parnell, Auckland, New Zealand<br/>
-            Email: <a href="mailto:connect@viralx.co.nz" style={{ color: '#4a8c5c' }}>connect@viralx.co.nz</a>
+            Email: <a href="mailto:contact@nearmenow.co.nz" style={{ color: '#4a8c5c' }}>contact@nearmenow.co.nz</a><br/>
+            Website: <a href="https://www.nearmenow.co.nz" style={{ color: '#4a8c5c' }}>nearmenow.co.nz</a>
           </p>
+  
+          <div style={{ fontSize: '12px', color: '#8a8a8a', marginTop: '16px', lineHeight: 1.6 }}>
+            nearme is a service operated by ViralX LTD, a company registered in New Zealand.
+          </div>
   
           <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #e8e4de', fontSize: '13px', color: '#8a8a8a' }}>
             <a href="/privacy" style={{ color: '#4a8c5c', marginRight: '16px' }}>Privacy Policy</a>
