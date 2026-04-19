@@ -46,6 +46,11 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [pushEnabled, setPushEnabled] = useState(false)
   const [pushLoading, setPushLoading] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+  const [pendingDeletion, setPendingDeletion] = useState<any>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -61,6 +66,11 @@ export default function ProfilePage() {
         if (jobsData) setJobs(jobsData)
         const { data: savesData } = await supabase.from('saves').select('*, listings(*)').eq('user_id', user.id).order('created_at', { ascending: false })
         if (savesData) setSavedListings(savesData.map((s: any) => s.listings).filter(Boolean))
+
+        // 삭제 요청 상태 확인
+        const { data: deletionData } = await supabase.from('account_deletion_requests').select('*').eq('user_id', user.id).eq('status', 'pending').maybeSingle()
+        if (deletionData) setPendingDeletion(deletionData)
+
         try {
           if ('serviceWorker' in navigator && 'PushManager' in window) {
             const reg = await navigator.serviceWorker.getRegistration()
@@ -104,6 +114,41 @@ export default function ProfilePage() {
     setJobs(jobs.filter(j => j.id !== id))
   }
 
+  const handleRequestDeletion = async () => {
+    if (deleteConfirmText !== 'DELETE') {
+      setDeleteError('Please type DELETE to confirm')
+      return
+    }
+    setDeleteLoading(true)
+    setDeleteError('')
+
+    const { error } = await supabase.from('account_deletion_requests').insert({
+      user_id: user.id,
+      email: user.email,
+      status: 'pending',
+    })
+
+    if (error) {
+      setDeleteError('Failed to submit deletion request. Please try again.')
+      setDeleteLoading(false)
+      return
+    }
+
+    // 삭제 요청 정보 다시 조회
+    const { data: deletionData } = await supabase.from('account_deletion_requests').select('*').eq('user_id', user.id).eq('status', 'pending').maybeSingle()
+    if (deletionData) setPendingDeletion(deletionData)
+
+    setDeleteLoading(false)
+    setShowDeleteModal(false)
+    setDeleteConfirmText('')
+  }
+
+  const handleCancelDeletion = async () => {
+    if (!confirm('Cancel account deletion request?')) return
+    await supabase.from('account_deletion_requests').update({ status: 'cancelled', cancelled_at: new Date().toISOString() }).eq('user_id', user.id).eq('status', 'pending')
+    setPendingDeletion(null)
+  }
+
   if (loading) return <div style={{ minHeight: '100vh', background: '#faf8f4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a8a8a' }}>Loading...</div>
 
   return (
@@ -116,6 +161,22 @@ export default function ProfilePage() {
       </nav>
 
       <div style={{ maxWidth: '680px', margin: '0 auto', padding: '24px' }}>
+
+        {pendingDeletion && (
+          <div style={{ background: '#fde8e8', border: '1.5px solid #c0392b', borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+              <div style={{ fontSize: '20px' }}>⚠️</div>
+              <div style={{ fontSize: '15px', fontWeight: '700', color: '#c0392b' }}>Account deletion scheduled</div>
+            </div>
+            <div style={{ fontSize: '13px', color: '#4a4a4a', lineHeight: '1.5', marginBottom: '14px' }}>
+              Your account will be permanently deleted on <strong>{new Date(pendingDeletion.scheduled_deletion_at).toLocaleDateString('en-NZ', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>. All your listings, messages, and data will be erased.
+            </div>
+            <button onClick={handleCancelDeletion} style={{ background: '#fff', color: '#c0392b', border: '1.5px solid #c0392b', borderRadius: '100px', padding: '8px 18px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
+              Cancel deletion
+            </button>
+          </div>
+        )}
+
         <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '24px', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#1a3a2a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', color: '#fff', fontWeight: '700', flexShrink: 0 }}>
@@ -171,14 +232,12 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* 탭 */}
         <div style={{ display: 'flex', background: '#e8e4de', borderRadius: '100px', padding: '4px', marginBottom: '20px', gap: '4px' }}>
           {[['my', `Listings (${listings.length})`], ['jobs', `Jobs (${jobs.length})`], ['saved', `Saved (${savedListings.length})`]].map(([tab, label]) => (
             <button key={tab} onClick={() => setActiveTab(tab as any)} style={{ flex: 1, border: 'none', borderRadius: '100px', padding: '10px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', background: activeTab === tab ? '#fff' : 'transparent', color: activeTab === tab ? '#1a1a1a' : '#8a8a8a' }}>{label}</button>
           ))}
         </div>
 
-        {/* MY LISTINGS */}
         {activeTab === 'my' && (
           listings.length === 0 ? (
             <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '40px', textAlign: 'center', color: '#8a8a8a', fontSize: '14px' }}>
@@ -207,7 +266,6 @@ export default function ProfilePage() {
           )
         )}
 
-        {/* MY JOBS */}
         {activeTab === 'jobs' && (
           jobs.length === 0 ? (
             <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '40px', textAlign: 'center', color: '#8a8a8a', fontSize: '14px' }}>
@@ -238,7 +296,6 @@ export default function ProfilePage() {
           )
         )}
 
-        {/* SAVED */}
         {activeTab === 'saved' && (
           savedListings.length === 0 ? (
             <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '40px', textAlign: 'center', color: '#8a8a8a', fontSize: '14px' }}>
@@ -262,7 +319,75 @@ export default function ProfilePage() {
             </div>
           )
         )}
+
+        {/* Danger Zone - 계정 삭제 */}
+        {!pendingDeletion && (
+          <div style={{ marginTop: '32px', background: '#fff', borderRadius: '16px', border: '1.5px solid #fde8e8', padding: '20px' }}>
+            <div style={{ fontSize: '14px', fontWeight: '700', color: '#c0392b', marginBottom: '8px' }}>Danger zone</div>
+            <div style={{ fontSize: '13px', color: '#4a4a4a', lineHeight: '1.5', marginBottom: '14px' }}>
+              Permanently delete your account and all associated data. This action cannot be undone.
+            </div>
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              style={{ background: 'transparent', color: '#c0392b', border: '1.5px solid #c0392b', borderRadius: '100px', padding: '10px 20px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
+            >
+              Delete account
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* 계정 삭제 확인 모달 */}
+      {showDeleteModal && (
+        <div onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(''); setDeleteError('') }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: '20px', padding: '24px', maxWidth: '440px', width: '100%', fontFamily: "'DM Sans', sans-serif", maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ fontFamily: 'Georgia, serif', fontSize: '22px', fontWeight: '700', color: '#c0392b', marginBottom: '12px' }}>Delete your account?</div>
+
+            <div style={{ fontSize: '14px', color: '#4a4a4a', lineHeight: '1.6', marginBottom: '16px' }}>
+              This is <strong>permanent</strong>. Your account will be scheduled for deletion in <strong>30 days</strong>. During this time, you can cancel by logging in and clicking "Cancel deletion".
+            </div>
+
+            <div style={{ background: '#fde8e8', borderRadius: '10px', padding: '14px', marginBottom: '16px' }}>
+              <div style={{ fontSize: '13px', fontWeight: '600', color: '#c0392b', marginBottom: '8px' }}>What will be deleted:</div>
+              <div style={{ fontSize: '13px', color: '#4a4a4a', lineHeight: '1.7' }}>
+                • All your listings ({listings.length})<br/>
+                • All your job postings ({jobs.length})<br/>
+                • All messages sent and received<br/>
+                • Your profile, reviews, and saved items<br/>
+                • Your notification preferences
+              </div>
+            </div>
+
+            <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
+              Type <span style={{ color: '#c0392b', fontWeight: '700' }}>DELETE</span> to confirm:
+            </div>
+            <input
+              value={deleteConfirmText}
+              onChange={(e) => { setDeleteConfirmText(e.target.value); setDeleteError('') }}
+              placeholder="Type DELETE"
+              style={{ width: '100%', border: '1.5px solid #e8e4de', borderRadius: '10px', padding: '12px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', marginBottom: '8px', fontFamily: "'DM Sans', sans-serif" }}
+            />
+
+            {deleteError && <div style={{ fontSize: '13px', color: '#c0392b', marginBottom: '12px' }}>{deleteError}</div>}
+
+            <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+              <button
+                onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(''); setDeleteError('') }}
+                style={{ flex: 1, background: '#f0ede5', color: '#4a4a4a', border: 'none', borderRadius: '100px', padding: '14px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRequestDeletion}
+                disabled={deleteLoading || deleteConfirmText !== 'DELETE'}
+                style={{ flex: 1, background: deleteConfirmText !== 'DELETE' ? '#8a8a8a' : '#c0392b', color: '#fff', border: 'none', borderRadius: '100px', padding: '14px', fontSize: '14px', fontWeight: '600', cursor: deleteLoading || deleteConfirmText !== 'DELETE' ? 'not-allowed' : 'pointer' }}
+              >
+                {deleteLoading ? 'Processing...' : 'Delete account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <BottomNav />
     </main>
