@@ -24,6 +24,9 @@ function MessagesContent() {
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [showReportModal, setShowReportModal] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false)
+  const [blockLoading, setBlockLoading] = useState(false)
+  const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set())
   const bottomRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -33,6 +36,11 @@ function MessagesContent() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/auth'); return }
       setUser(user)
+
+      // 내가 차단한 유저 목록
+      const { data: blockedData } = await supabase.from('blocked_users').select('blocked_id').eq('blocker_id', user.id)
+      const blockedSet = new Set((blockedData || []).map((b: any) => b.blocked_id))
+      setBlockedIds(blockedSet)
 
       const { count } = await supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('read', false)
       setUnreadCount(count || 0)
@@ -44,8 +52,13 @@ function MessagesContent() {
       } else {
         const { data } = await supabase.from('messages').select('*, listings(title, price)').or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`).order('created_at', { ascending: false })
         if (data) {
+          // 차단된 유저와의 대화 제외
+          const filtered = data.filter((m: any) => {
+            const otherId = m.sender_id === user.id ? m.receiver_id : m.sender_id
+            return !blockedSet.has(otherId)
+          })
           const seen = new Set()
-          const unique = data.filter((m: any) => {
+          const unique = filtered.filter((m: any) => {
             if (seen.has(m.listing_id)) return false
             seen.add(m.listing_id)
             return true
@@ -128,7 +141,38 @@ function MessagesContent() {
     setUploading(false)
   }
 
+  const handleBlock = async () => {
+    if (!user || !receiverId) return
+    setBlockLoading(true)
+    await supabase.from('blocked_users').insert({ blocker_id: user.id, blocked_id: receiverId })
+    setBlockLoading(false)
+    setShowBlockConfirm(false)
+    setShowMenu(false)
+    router.push('/messages')
+  }
+
   if (loading) return <div style={{ minHeight: '100vh', background: '#faf8f4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a8a8a' }}>Loading...</div>
+
+  // 차단된 유저와의 채팅방이면 진입 차단
+  if (receiverId && blockedIds.has(receiverId)) {
+    return (
+      <main style={{ minHeight: '100vh', background: '#faf8f4', display: 'flex', flexDirection: 'column' }}>
+        <nav style={{ background: '#1a3a2a', padding: '0 24px', height: '58px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div onClick={() => router.push('/')} style={{ fontFamily: 'Georgia, serif', fontSize: '22px', color: '#fff', cursor: 'pointer' }}>
+            near<span style={{ color: '#7dcf9a', fontStyle: 'italic' }}>me</span>
+          </div>
+          <button onClick={() => router.push('/messages')} style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: 'none', borderRadius: '100px', padding: '8px 18px', fontSize: '13px', cursor: 'pointer' }}>← Back</button>
+        </nav>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', textAlign: 'center' }}>
+          <div>
+            <div style={{ fontSize: '48px', marginBottom: '12px' }}>🚫</div>
+            <div style={{ fontFamily: 'Georgia, serif', fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>User blocked</div>
+            <div style={{ fontSize: '14px', color: '#4a4a4a', lineHeight: '1.5' }}>You've blocked this user. To unblock, visit their profile.</div>
+          </div>
+        </div>
+      </main>
+    )
+  }
 
   // 채팅 목록 화면
   if (!listingId) return (
@@ -189,13 +233,29 @@ function MessagesContent() {
               <div
                 onClick={() => {
                   setShowMenu(false)
+                  router.push(`/user/${receiverId}`)
+                }}
+                style={{ padding: '10px 14px', fontSize: '14px', color: '#1a3a2a', cursor: 'pointer', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                👤 View profile
+              </div>
+              <div
+                onClick={() => {
+                  setShowMenu(false)
                   setShowReportModal(true)
                 }}
                 style={{ padding: '10px 14px', fontSize: '14px', color: '#c0392b', cursor: 'pointer', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#fde8e8'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
               >
                 🚩 Report user
+              </div>
+              <div
+                onClick={() => {
+                  setShowMenu(false)
+                  setShowBlockConfirm(true)
+                }}
+                style={{ padding: '10px 14px', fontSize: '14px', color: '#c0392b', cursor: 'pointer', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                🚫 Block user
               </div>
             </div>
           )}
@@ -294,6 +354,33 @@ function MessagesContent() {
           {uploading ? '...' : 'Send'}
         </button>
       </div>
+
+      {/* 차단 확인 모달 */}
+      {showBlockConfirm && (
+        <div onClick={() => setShowBlockConfirm(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1001, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: '20px', padding: '24px', maxWidth: '400px', width: '100%', fontFamily: "'DM Sans', sans-serif" }}>
+            <div style={{ fontFamily: 'Georgia, serif', fontSize: '20px', fontWeight: '600', marginBottom: '12px' }}>Block this user?</div>
+            <div style={{ fontSize: '14px', color: '#4a4a4a', lineHeight: '1.5', marginBottom: '20px' }}>
+              You won't see their listings, messages, or profile. They won't be notified. You can unblock them anytime from their profile.
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => setShowBlockConfirm(false)}
+                style={{ flex: 1, background: '#f0ede5', color: '#4a4a4a', border: 'none', borderRadius: '100px', padding: '14px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBlock}
+                disabled={blockLoading}
+                style={{ flex: 1, background: '#c0392b', color: '#fff', border: 'none', borderRadius: '100px', padding: '14px', fontSize: '14px', fontWeight: '600', cursor: blockLoading ? 'not-allowed' : 'pointer' }}
+              >
+                {blockLoading ? 'Blocking...' : 'Block user'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {receiverId && (
         <ReportModal

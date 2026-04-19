@@ -50,11 +50,20 @@ export default function Home() {
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [currentAdIndex, setCurrentAdIndex] = useState(0)
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set())
   const carouselRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setCurrentUser(data.user))
+    const init = async () => {
+      const { data } = await supabase.auth.getUser()
+      setCurrentUser(data.user)
+      if (data.user) {
+        const { data: blockedData } = await supabase.from('blocked_users').select('blocked_id').eq('blocker_id', data.user.id)
+        setBlockedIds(new Set((blockedData || []).map((b: any) => b.blocked_id)))
+      }
+    }
+    init()
     if (typeof window !== 'undefined' && localStorage.getItem('nearme_show_onboarding') === 'true') {
       localStorage.removeItem('nearme_show_onboarding')
       setShowOnboarding(true)
@@ -76,13 +85,14 @@ export default function Home() {
 
   useEffect(() => {
     const fetchData = async () => {
-      let query = supabase.from('listings').select('*').order('created_at', { ascending: false }).limit(20)
+      let query = supabase.from('listings').select('*').order('created_at', { ascending: false }).limit(40)
       if (search) query = query.ilike('title', `%${search}%`)
       if (activeCategory !== 'All') query = query.eq('category', activeCategory)
       const { data, error } = await query
       if (!error && data) {
+        const filteredByBlock = data.filter((item: any) => !blockedIds.has(item.user_id))
         const now = new Date()
-        const processed = data.map(item => ({ ...item, is_boosted: item.is_boosted && item.boosted_until && new Date(item.boosted_until) > now }))
+        const processed = filteredByBlock.map(item => ({ ...item, is_boosted: item.is_boosted && item.boosted_until && new Date(item.boosted_until) > now }))
         const sorted = [...processed.filter(i => i.is_boosted), ...processed.filter(i => !i.is_boosted)]
         if (userLocation) {
           const filtered = sorted.filter((item) => {
@@ -93,12 +103,12 @@ export default function Home() {
             const a = Math.sin(dLat/2)**2 + Math.cos(userLocation.lat * Math.PI/180) * Math.cos(item.latitude * Math.PI/180) * Math.sin(dLng/2)**2
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)) <= radius
           })
-          setListings(filtered)
-        } else setListings(sorted)
+          setListings(filtered.slice(0, 20))
+        } else setListings(sorted.slice(0, 20))
       }
 
-      const { data: jobsData } = await supabase.from('jobs').select('*').order('created_at', { ascending: false }).limit(20)
-      if (jobsData) setJobs(jobsData)
+      const { data: jobsData } = await supabase.from('jobs').select('*').order('created_at', { ascending: false }).limit(40)
+      if (jobsData) setJobs(jobsData.filter((j: any) => !blockedIds.has(j.user_id)).slice(0, 20))
 
       const { data: adsData } = await supabase.from('ads').select('*').eq('status', 'active')
       if (adsData) {
@@ -121,7 +131,7 @@ export default function Home() {
       setLoading(false)
     }
     fetchData()
-  }, [activeCategory, search, radius, userLocation])
+  }, [activeCategory, search, radius, userLocation, blockedIds])
 
   useEffect(() => {
     if (ads.length <= 1) return
@@ -200,7 +210,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* SPONSORED CAROUSEL */}
         {ads.length > 0 && (
           <div style={{ background: "#fdf6e8", borderBottom: "1px solid #f0e4c0", padding: "12px 20px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
@@ -233,7 +242,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* CATEGORIES */}
         <div style={{ position: "relative" }}>
           <div style={{ padding: "16px 20px 4px", display: "flex", gap: "8px", overflowX: "auto", scrollbarWidth: "none" }}>
             {categories.map((cat) => {

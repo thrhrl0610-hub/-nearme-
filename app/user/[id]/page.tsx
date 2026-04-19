@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import BottomNav from '../../../components/BottomNav'
+import ReportModal from '../../../components/ReportModal'
 
 export default function UserProfilePage() {
   const { id } = useParams()
@@ -11,6 +12,12 @@ export default function UserProfilePage() {
   const [listings, setListings] = useState<any[]>([])
   const [reviews, setReviews] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [isBlocked, setIsBlocked] = useState(false)
+  const [blockLoading, setBlockLoading] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -20,14 +27,73 @@ export default function UserProfilePage() {
       if (listingsData) setListings(listingsData)
       const { data: reviewsData } = await supabase.from('reviews').select('*').eq('seller_id', id).order('created_at', { ascending: false })
       if (reviewsData) setReviews(reviewsData)
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setCurrentUser(user)
+        const { data: blockData } = await supabase.from('blocked_users').select('*').eq('blocker_id', user.id).eq('blocked_id', id).maybeSingle()
+        if (blockData) setIsBlocked(true)
+      }
+
       setLoading(false)
     }
     fetchData()
   }, [id])
 
+  const handleBlock = async () => {
+    if (!currentUser) { router.push('/auth'); return }
+    setBlockLoading(true)
+
+    if (isBlocked) {
+      await supabase.from('blocked_users').delete().eq('blocker_id', currentUser.id).eq('blocked_id', id)
+      setIsBlocked(false)
+    } else {
+      await supabase.from('blocked_users').insert({ blocker_id: currentUser.id, blocked_id: id })
+      setIsBlocked(true)
+    }
+
+    setBlockLoading(false)
+    setShowBlockConfirm(false)
+    setShowMenu(false)
+  }
+
   const avgRating = reviews.length > 0 ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1) : null
+  const isOwnProfile = currentUser && currentUser.id === id
 
   if (loading) return <div style={{ minHeight: '100vh', background: '#faf8f4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a8a8a' }}>Loading...</div>
+
+  // 차단된 유저면 내용 숨김
+  if (isBlocked) {
+    return (
+      <main style={{ minHeight: '100vh', background: '#faf8f4', paddingBottom: '80px' }}>
+        <nav style={{ background: '#1a3a2a', padding: '0 24px', height: '58px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div onClick={() => router.push('/')} style={{ fontFamily: 'Georgia, serif', fontSize: '22px', color: '#fff', cursor: 'pointer' }}>
+            near<span style={{ color: '#7dcf9a', fontStyle: 'italic' }}>me</span>
+          </div>
+          <button onClick={() => router.back()} style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: 'none', borderRadius: '100px', padding: '8px 18px', fontSize: '13px', cursor: 'pointer' }}>← Back</button>
+        </nav>
+
+        <div style={{ maxWidth: '680px', margin: '0 auto', padding: '24px' }}>
+          <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '40px 24px', textAlign: 'center' }}>
+            <div style={{ fontSize: '48px', marginBottom: '12px' }}>🚫</div>
+            <div style={{ fontFamily: 'Georgia, serif', fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>User blocked</div>
+            <div style={{ fontSize: '14px', color: '#4a4a4a', lineHeight: '1.5', marginBottom: '20px' }}>
+              You've blocked this user. You won't see their listings, messages, or content.
+            </div>
+            <button
+              onClick={handleBlock}
+              disabled={blockLoading}
+              style={{ background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '12px 28px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}
+            >
+              {blockLoading ? 'Unblocking...' : 'Unblock user'}
+            </button>
+          </div>
+        </div>
+
+        <BottomNav />
+      </main>
+    )
+  }
 
   return (
     <main style={{ minHeight: '100vh', background: '#faf8f4', paddingBottom: '80px' }}>
@@ -35,7 +101,39 @@ export default function UserProfilePage() {
         <div onClick={() => router.push('/')} style={{ fontFamily: 'Georgia, serif', fontSize: '22px', color: '#fff', cursor: 'pointer' }}>
           near<span style={{ color: '#7dcf9a', fontStyle: 'italic' }}>me</span>
         </div>
-        <button onClick={() => router.back()} style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: 'none', borderRadius: '100px', padding: '8px 18px', fontSize: '13px', cursor: 'pointer' }}>← Back</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
+          {currentUser && !isOwnProfile && (
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              ⋮
+            </button>
+          )}
+          <button onClick={() => router.back()} style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: 'none', borderRadius: '100px', padding: '8px 18px', fontSize: '13px', cursor: 'pointer' }}>← Back</button>
+          {showMenu && (
+            <div style={{ position: 'absolute', top: '44px', right: '0', background: '#fff', border: '1px solid #e8e4de', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', padding: '6px', minWidth: '180px', zIndex: 100 }}>
+              <div
+                onClick={() => {
+                  setShowMenu(false)
+                  setShowReportModal(true)
+                }}
+                style={{ padding: '10px 14px', fontSize: '14px', color: '#c0392b', cursor: 'pointer', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                🚩 Report user
+              </div>
+              <div
+                onClick={() => {
+                  setShowMenu(false)
+                  setShowBlockConfirm(true)
+                }}
+                style={{ padding: '10px 14px', fontSize: '14px', color: '#c0392b', cursor: 'pointer', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                🚫 Block user
+              </div>
+            </div>
+          )}
+        </div>
       </nav>
 
       <div style={{ maxWidth: '680px', margin: '0 auto', padding: '24px' }}>
@@ -93,6 +191,42 @@ export default function UserProfilePage() {
           </>
         )}
       </div>
+
+      {/* 차단 확인 모달 */}
+      {showBlockConfirm && (
+        <div onClick={() => setShowBlockConfirm(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: '20px', padding: '24px', maxWidth: '400px', width: '100%', fontFamily: "'DM Sans', sans-serif" }}>
+            <div style={{ fontFamily: 'Georgia, serif', fontSize: '20px', fontWeight: '600', marginBottom: '12px' }}>Block this user?</div>
+            <div style={{ fontSize: '14px', color: '#4a4a4a', lineHeight: '1.5', marginBottom: '20px' }}>
+              You won't see their listings, messages, or profile. They won't be notified. You can unblock them anytime.
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => setShowBlockConfirm(false)}
+                style={{ flex: 1, background: '#f0ede5', color: '#4a4a4a', border: 'none', borderRadius: '100px', padding: '14px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBlock}
+                disabled={blockLoading}
+                style={{ flex: 1, background: '#c0392b', color: '#fff', border: 'none', borderRadius: '100px', padding: '14px', fontSize: '14px', fontWeight: '600', cursor: blockLoading ? 'not-allowed' : 'pointer' }}
+              >
+                {blockLoading ? 'Blocking...' : 'Block user'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        contentType="user"
+        contentId={id as string}
+        reportedUserId={id as string}
+        userId={currentUser?.id || null}
+      />
 
       <BottomNav />
     </main>
