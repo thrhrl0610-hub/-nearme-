@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import BottomNav from '../../../components/BottomNav'
+import ReportModal from '../../../components/ReportModal'
 
 const StarIcon = ({ filled }: { filled: boolean }) => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill={filled ? "#c8952a" : "none"} stroke="#c8952a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -56,9 +57,7 @@ export default function ListingPage() {
   const [comment, setComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [reviewMessage, setReviewMessage] = useState('')
-  const [showReport, setShowReport] = useState(false)
-  const [reportReason, setReportReason] = useState('')
-  const [reportSent, setReportSent] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [markingSold, setMarkingSold] = useState(false)
 
@@ -130,14 +129,6 @@ export default function ListingPage() {
     setSubmitting(false)
   }
 
-  const handleReport = async () => {
-    if (!user) { router.push('/auth'); return }
-    if (!reportReason) return
-    await supabase.from('reports').insert({ reporter_id: user.id, listing_id: id, reason: reportReason })
-    setReportSent(true)
-    setShowReport(false)
-  }
-
   const avgRating = reviews.length > 0 ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1) : null
   const sellerAvgRating = sellerReviews.length > 0 ? (sellerReviews.reduce((sum, r) => sum + r.rating, 0) / sellerReviews.length).toFixed(1) : null
   const allImages = listing ? [listing.image_url, ...(listing.extra_images || [])].filter(Boolean) : []
@@ -164,7 +155,6 @@ export default function ListingPage() {
       </nav>
 
       <div style={{ maxWidth: '680px', margin: '0 auto', padding: '24px' }}>
-        {/* 이미지 갤러리 */}
         <div style={{ position: 'relative', width: '100%', aspectRatio: '4/3', background: '#e8f4f0', borderRadius: '16px', marginBottom: '12px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {allImages.length > 0
             ? <img src={allImages[currentImageIndex]} alt={listing.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -194,7 +184,6 @@ export default function ListingPage() {
           </div>
         )}
 
-        {/* 가격 + 제목 */}
         <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '24px', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
             <div style={{ fontFamily: 'Georgia, serif', fontSize: '32px', fontWeight: '700', color: listing.is_sold ? '#8a8a8a' : '#1a1a1a' }}>
@@ -221,7 +210,6 @@ export default function ListingPage() {
           )}
         </div>
 
-        {/* 판매자 프로필 */}
         <div onClick={() => router.push(`/user/${listing.user_id}`)} style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
           <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#1a3a2a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', color: '#fff', fontWeight: '700', flexShrink: 0 }}>
             {seller?.email?.[0].toUpperCase() || '?'}
@@ -275,32 +263,20 @@ export default function ListingPage() {
           </div>
         )}
 
-        {user && !isOwner && (
-          <div style={{ marginBottom: '24px' }}>
-            {reportSent ? (
-              <div style={{ fontSize: '13px', color: '#8a8a8a', textAlign: 'center' }}>Report submitted. Thank you.</div>
-            ) : (
-              <button onClick={() => setShowReport(!showReport)} style={{ background: 'transparent', border: 'none', fontSize: '13px', color: '#8a8a8a', cursor: 'pointer', textDecoration: 'underline' }}>
-                Report this listing
-              </button>
-            )}
-            {showReport && !reportSent && (
-              <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e8e4de', padding: '16px', marginTop: '8px' }}>
-                <div style={{ fontSize: '13px', fontWeight: '500', marginBottom: '8px' }}>Why are you reporting this?</div>
-                {['Spam or scam', 'Inappropriate content', 'Wrong category', 'Already sold', 'Other'].map(reason => (
-                  <div key={reason} onClick={() => setReportReason(reason)} style={{ padding: '8px 12px', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', background: reportReason === reason ? '#e8f4f0' : 'transparent', color: reportReason === reason ? '#1a3a2a' : '#4a4a4a', marginBottom: '4px' }}>
-                    {reportReason === reason ? '✓ ' : ''}{reason}
-                  </div>
-                ))}
-                <button onClick={handleReport} disabled={!reportReason} style={{ marginTop: '8px', background: '#1a3a2a', color: '#fff', border: 'none', borderRadius: '100px', padding: '8px 20px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', opacity: reportReason ? 1 : 0.5 }}>
-                  Submit report
-                </button>
-              </div>
-            )}
+        {!isOwner && (
+          <div style={{ marginBottom: '24px', textAlign: 'center' }}>
+            <button
+              onClick={() => {
+                if (!user) { router.push('/auth'); return }
+                setShowReportModal(true)
+              }}
+              style={{ background: 'transparent', border: 'none', fontSize: '13px', color: '#8a8a8a', cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              🚩 Report this listing
+            </button>
           </div>
         )}
 
-        {/* 리뷰 */}
         <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e8e4de', padding: '24px', marginBottom: '16px' }}>
           <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px' }}>Reviews {reviews.length > 0 && `(${reviews.length})`}</div>
           {reviews.length === 0 ? (
@@ -337,6 +313,15 @@ export default function ListingPage() {
           )}
         </div>
       </div>
+
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        contentType="listing"
+        contentId={id as string}
+        reportedUserId={listing.user_id}
+        userId={user?.id || null}
+      />
 
       <BottomNav />
     </main>

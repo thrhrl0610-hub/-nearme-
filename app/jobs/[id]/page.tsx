@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import BottomNav from '../../../components/BottomNav'
+import ReportModal from '../../../components/ReportModal'
 
 export default function JobDetailPage() {
   const router = useRouter()
@@ -11,6 +12,7 @@ export default function JobDetailPage() {
   const [poster, setPoster] = useState<any>(null)
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [showReportModal, setShowReportModal] = useState(false)
 
   useEffect(() => {
     const fetchJob = async () => {
@@ -43,7 +45,6 @@ export default function JobDetailPage() {
 
       <div style={{ padding: '24px', maxWidth: '640px', margin: '0 auto' }}>
 
-        {/* Job 헤더 */}
         <div style={{ background: '#fff', borderRadius: '14px', border: `1px solid ${job.is_urgent ? '#e85d2f' : '#e8e4de'}`, padding: '24px', marginBottom: '16px', position: 'relative' }}>
           {job.is_urgent && (
             <div style={{ position: 'absolute', top: '-1px', left: '16px', background: '#e85d2f', color: '#fff', fontSize: '11px', fontWeight: '700', padding: '3px 10px', borderRadius: '0 0 8px 8px' }}>🔴 URGENT</div>
@@ -65,7 +66,6 @@ export default function JobDetailPage() {
           )}
         </div>
 
-        {/* 게시자 */}
         <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8e4de', padding: '16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#1a3a2a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', color: '#fff', fontWeight: '700', flexShrink: 0 }}>
             {poster?.email?.[0]?.toUpperCase() || '?'}
@@ -76,7 +76,6 @@ export default function JobDetailPage() {
           </div>
         </div>
 
-        {/* 버튼 */}
         {!isOwner && (
           <button onClick={() => {
             if (!user) { router.push('/auth'); return }
@@ -91,7 +90,30 @@ export default function JobDetailPage() {
             This is your job posting
           </div>
         )}
+
+        {!isOwner && (
+          <div style={{ marginTop: '12px', textAlign: 'center' }}>
+            <button
+              onClick={() => {
+                if (!user) { router.push('/auth'); return }
+                setShowReportModal(true)
+              }}
+              style={{ background: 'transparent', border: 'none', fontSize: '13px', color: '#8a8a8a', cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              🚩 Report this job
+            </button>
+          </div>
+        )}
       </div>
+
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        contentType="job"
+        contentId={params.id as string}
+        reportedUserId={job.user_id}
+        userId={user?.id || null}
+      />
 
       <BottomNav />
     </main>

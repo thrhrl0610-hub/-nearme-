@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 import BottomNav from '../../components/BottomNav'
+import ReportModal from '../../components/ReportModal'
 
 function MessagesContent() {
   const router = useRouter()
@@ -21,6 +22,8 @@ function MessagesContent() {
   const [uploading, setUploading] = useState(false)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -84,7 +87,6 @@ function MessagesContent() {
     setUploading(true)
     let imageUrl: string | null = null
 
-    // 이미지 있으면 먼저 업로드
     if (imageFile) {
       const fileExt = imageFile.name.split('.').pop()
       const fileName = `messages/${user.id}-${Date.now()}.${fileExt}`
@@ -172,7 +174,32 @@ function MessagesContent() {
         <div onClick={() => router.push('/')} style={{ fontFamily: 'Georgia, serif', fontSize: '22px', color: '#fff', cursor: 'pointer' }}>
           near<span style={{ color: '#7dcf9a', fontStyle: 'italic' }}>me</span>
         </div>
-        <button onClick={() => router.push('/messages')} style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: 'none', borderRadius: '100px', padding: '8px 18px', fontSize: '13px', cursor: 'pointer' }}>← Back</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
+          {receiverId && (
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              ⋮
+            </button>
+          )}
+          <button onClick={() => router.push('/messages')} style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: 'none', borderRadius: '100px', padding: '8px 18px', fontSize: '13px', cursor: 'pointer' }}>← Back</button>
+          {showMenu && (
+            <div style={{ position: 'absolute', top: '44px', right: '0', background: '#fff', border: '1px solid #e8e4de', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', padding: '6px', minWidth: '180px', zIndex: 100 }}>
+              <div
+                onClick={() => {
+                  setShowMenu(false)
+                  setShowReportModal(true)
+                }}
+                style={{ padding: '10px 14px', fontSize: '14px', color: '#c0392b', cursor: 'pointer', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#fde8e8'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                🚩 Report user
+              </div>
+            </div>
+          )}
+        </div>
       </nav>
 
       {listing && (
@@ -221,7 +248,6 @@ function MessagesContent() {
         <div ref={bottomRef} />
       </div>
 
-      {/* 이미지 미리보기 */}
       {imagePreview && (
         <div style={{ background: '#fff', borderTop: '1px solid #e8e4de', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <img src={imagePreview} alt="Preview" style={{ width: '60px', height: '60px', borderRadius: '8px', objectFit: 'cover' }} />
@@ -268,6 +294,17 @@ function MessagesContent() {
           {uploading ? '...' : 'Send'}
         </button>
       </div>
+
+      {receiverId && (
+        <ReportModal
+          isOpen={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          contentType="user"
+          contentId={receiverId}
+          reportedUserId={receiverId}
+          userId={user?.id || null}
+        />
+      )}
     </main>
   )
 }
