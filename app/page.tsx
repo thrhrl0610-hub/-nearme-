@@ -167,7 +167,7 @@ export default function Home() {
     if (activeJobTab === 'Urgent') return job.is_urgent === true
     if (activeJobTab === 'All') return true
     return job.job_type === activeJobTab
-  }).slice(0, 6)
+  }).slice(0, 4)
 
   const currentAd = ads[currentAdIndex]
 
@@ -282,7 +282,7 @@ export default function Home() {
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "36px" }}>
-              {listings.map((item) => (
+              {listings.slice(0, 4).map((item) => (
                 <div key={item.id} onClick={() => router.push(`/listings/${item.id}`)} style={{ background: "#fff", borderRadius: "16px", border: `1px solid ${item.is_boosted ? '#e85d2f' : '#e8e4de'}`, display: "flex", alignItems: "center", gap: "14px", padding: "14px 16px", cursor: "pointer", position: "relative" }}>
                   {item.is_boosted && (
                     <div style={{ position: "absolute", top: "-1px", left: "12px", background: "#e85d2f", color: "#fff", fontSize: "11px", fontWeight: "700", padding: "2px 10px", borderRadius: "0 0 6px 6px" }}>Boosted</div>
